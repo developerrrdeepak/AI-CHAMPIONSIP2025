@@ -301,6 +301,27 @@ export default function CandidateDashboardPage() {
           </CardContent>
         </Card>
 
+       <Card className="glassmorphism animate-in fade-in-0 slide-in-from-top-4 duration-500 delay-1100 border-2 border-blue-500/20">
+          <CardHeader className="flex flex-row items-center justify-between bg-gradient-to-r from-blue-500/10 to-transparent">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <GraduationCap className="h-5 w-5 text-blue-600" />
+                Learning Courses
+                <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">NEW</span>
+              </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">
+                🎓 Upskill with employer-provided training
+              </p>
+            </div>
+            <Button asChild variant="default" size="sm" className="bg-blue-600 hover:bg-blue-700">
+              <Link href="/courses">View All</Link>
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <AvailableCoursesList />
+          </CardContent>
+        </Card>
+
        <div className="grid gap-6 md:grid-cols-2">
          <Card className="glassmorphism transition-all duration-300 hover:shadow-lg hover:-translate-y-1 animate-in fade-in-0 slide-in-from-top-4 duration-500 delay-700">
           <CardHeader className="flex flex-row items-center justify-between">
@@ -412,6 +433,53 @@ function AvailableJobsList({ candidate }: { candidate: Candidate | null }) {
                         <span>💰 {job.salaryRange || 'Competitive'}</span>
                         <span>•</span>
                         <span>📍 {job.location}</span>
+                    </div>
+                </Link>
+            ))}
+        </div>
+    );
+}
+
+function AvailableCoursesList() {
+    const { firestore } = useFirebase();
+    const coursesQuery = useMemoFirebase(() => {
+        if (!firestore) return null;
+        return query(collectionGroup(firestore, 'courses'));
+    }, [firestore]);
+
+    const { data: courses, isLoading } = useCollection(coursesQuery);
+
+    if (isLoading) return <Skeleton className="h-32 w-full" />;
+    if (!courses?.length) return (
+        <div className="text-center py-8">
+            <GraduationCap className="h-12 w-12 mx-auto text-muted-foreground/50 mb-2" />
+            <p className="text-sm text-muted-foreground">No courses available</p>
+        </div>
+    );
+
+    return (
+        <div className="space-y-3">
+            {courses.slice(0, 3).map((course: any) => (
+                <Link 
+                    key={course.id} 
+                    href="/courses" 
+                    className="block p-4 rounded-lg border-2 border-blue-500/20 hover:border-blue-500 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-gradient-to-r from-background to-blue-500/5"
+                >
+                    <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                                <h4 className="font-bold text-lg">{course.title}</h4>
+                                <span className="text-xs bg-blue-500/10 text-blue-600 px-2 py-0.5 rounded">{course.level}</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground line-clamp-2">{course.description}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span>🕒 {course.duration}</span>
+                        <span>•</span>
+                        <span>🎯 {course.instructor}</span>
+                        <span>•</span>
+                        <span>👥 {course.enrollments || 0} enrolled</span>
                     </div>
                 </Link>
             ))}
