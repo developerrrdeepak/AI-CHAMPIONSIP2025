@@ -194,10 +194,16 @@ export default function CandidateDashboardPage() {
     return (
     <div className="space-y-8">
         
-        <PageHeader
-            title={`Hello, ${user?.displayName?.split(' ')[0] || 'Candidate'}!`}
-            description="Welcome to your personal career portal."
-        />
+        <div className="flex items-center justify-between">
+            <PageHeader
+                title={`Hello, ${user?.displayName?.split(' ')[0] || 'Candidate'}!`}
+                description="Welcome to your personal career portal."
+            />
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-green-500/10 border border-green-500/20">
+                <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-xs font-semibold text-green-600">Live Updates</span>
+            </div>
+        </div>
         
         <ProfileGistCard candidate={candidate || null} />
 
@@ -228,8 +234,11 @@ export default function CandidateDashboardPage() {
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary animate-pulse" />
                 AI-Matched Jobs For You
+                <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full animate-pulse">LIVE</span>
               </CardTitle>
-              <p className="text-xs text-muted-foreground mt-1">Powered by advanced AI matching</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                🔄 Real-time updates • Powered by AI matching
+              </p>
             </div>
             <Button asChild variant="default" size="sm">
               <Link href="/jobs">View All</Link>
@@ -246,8 +255,11 @@ export default function CandidateDashboardPage() {
               <CardTitle className="flex items-center gap-2">
                 <GraduationCap className="h-5 w-5 text-green-600 animate-bounce" />
                 Live Hackathons & Challenges
+                <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full animate-pulse">LIVE</span>
               </CardTitle>
-              <p className="text-xs text-muted-foreground mt-1">Win prizes and boost your profile</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                🔄 Real-time updates • Win prizes and boost your profile
+              </p>
             </div>
             <Button asChild variant="default" size="sm" className="bg-green-600 hover:bg-green-700">
               <Link href="/challenges">View All</Link>
