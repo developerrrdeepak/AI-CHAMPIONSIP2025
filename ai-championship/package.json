@@ -25,7 +25,7 @@
     "dev": "next dev -p 9002",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
-    "build": "next build",
+    "build": "SKIP_ENV_VALIDATION=true next build",
     "export": "next build && next export",
     "deploy": "npm run build && firebase deploy --only hosting",
     "start": "next start",
