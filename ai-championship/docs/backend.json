@@ -1,0 +1,293 @@
+
+{
+  "entities": {
+    "Organization": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Organization",
+      "type": "object",
+      "description": "Represents an organization within the HireBot application.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the organization." },
+        "name": { "type": "string", "description": "Name of the organization." },
+        "logoUrl": { "type": "string", "description": "URL of the organization's logo.", "format": "uri" },
+        "primaryBrandColor": { "type": "string", "description": "Primary brand color in HSL format." },
+        "ownerId": { "type": "string", "description": "The UID of the user who owns the organization." },
+        "about": { "type": "string", "description": "A description of the organization." },
+        "websiteUrl": { "type": "string", "description": "URL of the organization's website.", "format": "uri" },
+        "linkedinUrl": { "type": "string", "description": "URL of the organization's LinkedIn page.", "format": "uri" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "ownerId"]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user within the HireBot application.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the user (matches auth UID)." },
+        "organizationId": { "type": "string", "description": "Reference to Organization." },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "avatarUrl": { "type": "string", "format": "uri" },
+        "role": { "type": "string", "enum": ["Owner", "Recruiter", "Hiring Manager", "Interviewer", "Candidate"] },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "organizationId", "email", "role", "isActive"]
+    },
+    "Notification": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Notification",
+        "type": "object",
+        "description": "Represents a notification for a user.",
+        "properties": {
+            "id": { "type": "string" },
+            "userId": { "type": "string", "description": "The ID of the user this notification is for." },
+            "title": { "type": "string" },
+            "message": { "type": "string" },
+            "link": { "type": "string", "format": "uri-reference" },
+            "isRead": { "type": "boolean" },
+            "type": { "type": "string", "enum": ["info", "warning", "success", "error"] },
+            "createdAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "userId", "title", "message", "isRead", "createdAt"]
+    },
+    "Job": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Job",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "organizationId": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "hiringManagerId": { "type": "string" },
+        "title": { "type": "string" },
+        "department": { "type": "string" },
+        "locationCity": { "type": "string" },
+        "locationCountry": { "type": "string" },
+        "isRemote": { "type": "boolean" },
+        "employmentType": { "type": "string" },
+        "seniorityLevel": { "type": "string" },
+        "numberOfOpenings": { "type": "number" },
+        "jobDescription": { "type": "string" },
+        "requiredSkills": { "type": "array", "items": { "type": "string" } },
+        "niceToHaveSkills": { "type": "array", "items": { "type": "string" } },
+        "salaryRangeMin": { "type": "number" },
+        "salaryRangeMax": { "type": "number" },
+        "salaryCurrency": { "type": "string" },
+        "status": { "type": "string", "enum": ["open", "paused", "closed"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "organizationId", "title", "department", "status"]
+    },
+    "Candidate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Candidate",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "organizationId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "currentRole": { "type": "string" },
+        "summary": { "type": "string" },
+        "experience": { "type": "array", "items": { "$ref": "#/entities/Experience" } },
+        "education": { "type": "array", "items": { "$ref": "#/entities/Education" } },
+        "skills": { "type": "array", "items": { "type": "string" } },
+        "links": { "type": "array", "items": { "$ref": "#/entities/Link" } },
+        "rawResumeText": { "type": "string" },
+        "aiProfileJson": { "type": "string" },
+        "experienceLevel": { "type": "string", "enum": ["Student", "Fresher", "0-2 years", "3-5 years", "5+ years"] },
+        "preferredLocation": { "type": "string", "enum": ["Remote", "Hybrid", "Onsite"] },
+        "expectedSalary": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "organizationId", "name", "email"]
+    },
+    "Experience": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Experience",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "company": { "type": "string" },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "required": ["title", "company", "startDate"]
+    },
+    "Education": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Education",
+        "type": "object",
+        "properties": {
+            "institution": { "type": "string" },
+            "degree": { "type": "string" },
+            "fieldOfStudy": { "type": "string" },
+            "startYear": { "type": "string" },
+            "endYear": { "type": "string" }
+        },
+        "required": ["institution", "degree", "startYear"]
+    },
+    "Link": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Link",
+        "type": "object",
+        "properties": {
+            "name": { "type": "string" },
+            "url": { "type": "string", "format": "uri" }
+        },
+        "required": ["name", "url"]
+    },
+    "Application": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Application",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "organizationId": { "type": "string" },
+        "jobId": { "type": "string" },
+        "candidateId": { "type": "string" },
+        "status": { "type": "string", "enum": ["applied", "shortlisted", "interview", "rejected", "offer", "hired"]},
+        "stage": { "type": "string", "enum": ["Applied", "Screening", "Technical Interview", "HR Interview", "Offer", "Hired", "Rejected"] },
+        "fitScore": { "type": "number" },
+        "cultureFitSummary": { "type": "string", "description": "AI-generated summary of cultural fit." },
+        "starredBy": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "organizationId", "jobId", "candidateId", "status", "stage"]
+    },
+    "ActivityLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ActivityLog",
+      "type": "object",
+      "description": "Represents an event in the system activity feed.",
+      "properties": {
+        "id": { "type": "string" },
+        "organizationId": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "actor": { 
+            "type": "object",
+            "properties": {
+                "id": { "type": "string" },
+                "name": { "type": "string" }
+            },
+            "required": ["id", "name"]
+        },
+        "action": { "type": "string" },
+        "target": { 
+            "type": "object",
+            "properties": {
+                "type": { "type": "string" },
+                "id": { "type": "string" },
+                "name": { "type": "string" }
+            },
+            "required": ["type", "id", "name"]
+        },
+        "context": { "type": "object" }
+      },
+      "required": ["id", "organizationId", "timestamp", "actor", "action", "target"]
+    },
+    "Challenge": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Challenge",
+      "type": "object",
+      "description": "Represents a competitive challenge for candidates.",
+      "properties": {
+        "id": { "type": "string" },
+        "organizationId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "type": { "type": "string", "enum": ["Hackathon", "Case Study", "Quiz", "Coding Challenge"] },
+        "reward": { "type": "string" },
+        "deadline": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "organizationId", "title", "description", "type", "deadline"]
+    },
+    "Interview": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Interview",
+      "type": "object",
+      "description": "Represents an interview scheduled for a candidate application.",
+      "properties": {
+        "id": { "type": "string" },
+        "applicationId": { "type": "string" },
+        "organizationId": { "type": "string" },
+        "type": { "type": "string" },
+        "scheduledAt": { "type": "string", "format": "date-time" },
+        "durationMinutes": { "type": "number" },
+        "locationOrLink": { "type": "string" },
+        "status": { "type": "string" },
+        "interviewerIds": { "type": "array", "items": { "type": "string" } },
+        "interviewerFeedback": {
+            "type": "array",
+            "items": { "$ref": "#/entities/InterviewerFeedback" }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "applicationId", "organizationId", "type", "scheduledAt", "interviewerIds"]
+    },
+    "InterviewerFeedback": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Interviewer Feedback",
+        "type": "object",
+        "description": "Feedback submitted by an interviewer for a candidate.",
+        "properties": {
+            "interviewerId": { "type": "string" },
+            "interviewerName": { "type": "string" },
+            "submittedAt": { "type": "string", "format": "date-time" },
+            "rating": { "type": "number", "description": "Overall rating from 1 to 5." },
+            "pros": { "type": "string", "description": "Strengths observed during the interview." },
+            "cons": { "type": "string", "description": "Weaknesses or concerns." },
+            "verdict": { "type": "string", "enum": ["Strong Hire", "Hire", "No Hire", "Strong No Hire"] }
+        },
+        "required": ["interviewerId", "submittedAt", "rating", "verdict"]
+    },
+    "EmailTemplate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Email Template",
+      "type": "object",
+      "description": "Represents a reusable email template for candidate communication.",
+      "properties": {
+        "id": { "type": "string" },
+        "organizationId": { "type": "string" },
+        "name": { "type": "string", "description": "The internal name for the template." },
+        "subject": { "type": "string", "description": "The email subject line." },
+        "body": { "type": "string", "description": "The email body content. Can include placeholders like {{candidateName}}." },
+        "type": { "type": "string", "enum": ["Invitation", "Rejection", "Follow-up", "Offer", "General"], "description": "The category of the template." },
+        "isDefault": { "type": "boolean", "description": "Whether this is a default system template." },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "organizationId", "name", "subject", "body", "type"]
+    }
+  },
+  "auth": {
+    "providers": ["password", "anonymous", "google.com"]
+  },
+  "firestore": {
+    "structure": [
+      { "path": "/organizations/{organizationId}", "definition": { "entityName": "Organization", "schema": { "$ref": "#/entities/Organization" } } },
+      { "path": "/users/{userId}", "definition": { "entityName": "User", "schema": { "$ref": "#/entities/User" } } },
+      { "path": "/users/{userId}/notifications/{notificationId}", "definition": { "entityName": "Notification", "schema": { "$ref": "#/entities/Notification" } } },
+      { "path": "/organizations/{organizationId}/jobs/{jobId}", "definition": { "entityName": "Job", "schema": { "$ref": "#/entities/Job" } } },
+      { "path": "/organizations/{organizationId}/candidates/{candidateId}", "definition": { "entityName": "Candidate", "schema": { "$ref": "#/entities/Candidate" } } },
+      { "path": "/organizations/{organizationId}/applications/{applicationId}", "definition": { "entityName": "Application", "schema": { "$ref": "#/entities/Application" } } },
+      { "path": "/organizations/{organizationId}/activity_logs/{activityLogId}", "definition": { "entityName": "ActivityLog", "schema": { "$ref": "#/entities/ActivityLog" } } },
+      { "path": "/organizations/{organizationId}/challenges/{challengeId}", "definition": { "entityName": "Challenge", "schema": { "$ref": "#/entities/Challenge" } } },
+      { "path": "/organizations/{organizationId}/interviews/{interviewId}", "definition": { "entityName": "Interview", "schema": { "$ref": "#/entities/Interview" } } },
+      { "path": "/organizations/{organizationId}/email_templates/{emailTemplateId}", "definition": { "entityName": "EmailTemplate", "schema": { "$ref": "#/entities/EmailTemplate" } } }
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "raindrop": {
+      "command": "npx",
+      "args": ["@raindrop/mcp-server"],
+      "env": {
+        "RAINDROP_API_KEY": "${RAINDROP_API_KEY}",
+        "RAINDROP_PROJECT_ID": "${RAINDROP_PROJECT_ID}"
+      }
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "nodeVersion": "20.x",
+  "env": {
+    "NEXT_PUBLIC_FIREBASE_API_KEY": {
+      "description": "Firebase API Key"
+    },
+    "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN": {
+      "description": "Firebase Auth Domain"
+    },
+    "NEXT_PUBLIC_FIREBASE_PROJECT_ID": {
+      "description": "Firebase Project ID"
+    },
+    "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET": {
+      "description": "Firebase Storage Bucket"
+    },
+    "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": {
+      "description": "Firebase Messaging Sender ID"
+    },
+    "NEXT_PUBLIC_FIREBASE_APP_ID": {
+      "description": "Firebase App ID"
+    },
+    "RAINDROP_API_KEY": {
+      "description": "Raindrop API Key"
+    },
+    "RAINDROP_MCP_BASE_URL": {
+      "description": "Raindrop MCP Server URL"
+    },
+    "VULTR_POSTGRES_CONNECTION_STRING": {
+      "description": "Vultr PostgreSQL Connection String"
+    },
+    "VULTR_API_KEY": {
+      "description": "Vultr API Key"
+    },
+    "VULTR_OBJECT_STORAGE_BUCKET": {
+      "description": "Vultr Object Storage Bucket Name"
+    },
+    "GOOGLE_GENAI_API_KEY": {
+      "description": "Google Genkit API Key"
+    },
+    "STRIPE_SECRET_KEY": {
+      "description": "Stripe Secret Key"
+    },
+    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY": {
+      "description": "Stripe Publishable Key"
+    },
+    "STRIPE_WEBHOOK_SECRET": {
+      "description": "Stripe Webhook Secret"
+    },
+    "ELEVENLABS_API_KEY": {
+      "description": "ElevenLabs API Key"
+    },
+    "ELEVENLABS_VOICE_ID": {
+      "description": "ElevenLabs Voice ID"
+    }
+  },
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/dashboard",
+      "permanent": false
+    }
+  ]
+}

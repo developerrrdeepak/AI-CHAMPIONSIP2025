@@ -1,0 +1,136 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+    
+    function hasRole(role) {
+      return request.auth.token.role == role;
+    }
+    
+    function isOrgMember(orgId) {
+      return request.auth.token.orgId == orgId;
+    }
+    
+    function isOrgOwner(orgId) {
+      return resource.data.ownerId == request.auth.uid;
+    }
+    
+    // User documents
+    match /users/{uid} {
+      allow read: if isSignedIn() && isOwner(uid);
+      allow create: if isSignedIn() && isOwner(uid) && 
+        request.resource.data.id == uid &&
+        request.resource.data.email == request.auth.token.email;
+      allow update: if isSignedIn() && isOwner(uid);
+      allow delete: if isSignedIn() && isOwner(uid);
+      
+      // Sub-collections
+      match /{document=**} {
+        allow read, write: if isSignedIn() && isOwner(uid);
+      }
+    }
+    
+    // Organization documents
+    match /organizations/{orgId} {
+      allow read: if isSignedIn() && (isOrgMember(orgId) || isOrgOwner(orgId));
+      allow create: if isSignedIn() && 
+        request.resource.data.ownerId == request.auth.uid;
+      allow update: if isSignedIn() && 
+        (isOrgOwner(orgId) || hasRole('Owner'));
+      allow delete: if isSignedIn() && 
+        isOrgOwner(orgId);
+      
+      // Sub-collections for organization data
+      match /{document=**} {
+        allow read: if isSignedIn() && (isOrgMember(orgId) || isOrgOwner(orgId));
+        allow write: if isSignedIn() && (isOrgOwner(orgId) || hasRole('Owner'));
+      }
+    }
+    
+    // Job postings
+    match /jobs/{jobId} {
+      allow read: if isSignedIn() && 
+        (resource.data.organizationId == request.auth.token.orgId ||
+         hasRole('Candidate'));
+      allow create: if isSignedIn() && 
+        (hasRole('Owner') || hasRole('Recruiter')) &&
+        request.resource.data.organizationId == request.auth.token.orgId;
+      allow update: if isSignedIn() && 
+        (resource.data.organizationId == request.auth.token.orgId) &&
+        (hasRole('Owner') || hasRole('Recruiter'));
+      allow delete: if isSignedIn() && 
+        (resource.data.organizationId == request.auth.token.orgId) &&
+        hasRole('Owner');
+    }
+    
+    // Job applications
+    match /applications/{appId} {
+      allow read: if isSignedIn() &&
+        (request.auth.uid == resource.data.candidateId ||
+         resource.data.organizationId == request.auth.token.orgId);
+      allow create: if isSignedIn() &&
+        request.auth.uid == request.resource.data.candidateId;
+      allow update: if isSignedIn() &&
+        (request.auth.uid == resource.data.candidateId ||
+         resource.data.organizationId == request.auth.token.orgId);
+    }
+    
+    // Candidate profiles
+    match /candidates/{candidateId} {
+      allow read: if isSignedIn() &&
+        (request.auth.uid == candidateId ||
+         request.auth.token.role == 'Recruiter' ||
+         request.auth.token.role == 'Owner');
+      allow create: if isSignedIn() &&
+        request.auth.uid == candidateId;
+      allow update: if isSignedIn() &&
+        request.auth.uid == candidateId;
+      allow delete: if isSignedIn() &&
+        request.auth.uid == candidateId;
+    }
+    
+    // Recruiter data (team members, etc.)
+    match /recruiter-data/{doc=**} {
+      allow read: if isSignedIn() &&
+        (hasRole('Owner') || hasRole('Recruiter'));
+      allow write: if isSignedIn() &&
+        (hasRole('Owner') || hasRole('Recruiter')) &&
+        request.auth.token.orgId == resource.data.organizationId;
+    }
+    
+    // Interviews
+    match /interviews/{interviewId} {
+      allow read: if isSignedIn() &&
+        (request.auth.uid == resource.data.candidateId ||
+         request.auth.uid == resource.data.interviewerId ||
+         resource.data.organizationId == request.auth.token.orgId);
+      allow create: if isSignedIn() &&
+        request.resource.data.organizationId == request.auth.token.orgId;
+      allow update: if isSignedIn() &&
+        (request.auth.uid == resource.data.candidateId ||
+         request.auth.uid == resource.data.interviewerId ||
+         resource.data.organizationId == request.auth.token.orgId);
+    }
+    
+    // Invoices and billing
+    match /invoices/{invoiceId} {
+      allow read: if isSignedIn() &&
+        (request.auth.uid == resource.data.userId);
+      allow write: if false; // Server-side only
+    }
+    
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

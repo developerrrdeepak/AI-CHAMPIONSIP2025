@@ -1,0 +1,202 @@
+
+/**
+ * # Firestore Security Rules for HireBot
+ *
+ * ## Core Philosophy
+ * This ruleset enforces a strict multi-tenant, organization-scoped security model. All data access is gated by authentication and organization membership. A user's access to resources like jobs, candidates, and applications is primarily determined by the `organizationId` associated with their user profile. This ensures that data from one organization is strictly isolated from another.
+ *
+ * ## Data Structure
+ * The data is hierarchically organized under top-level collections. The primary segregation is `/organizations/{organizationId}`, which contains most of the shared business data. User-specific profiles are stored separately in a top-level `/users/{userId}` collection to enforce strict ownership, with each user document containing an `organizationId` field that links them to their tenant. This structure simplifies tenancy checks.
+ *
+ * ## Key Security Decisions
+ * - **Default Deny**: All paths are closed by default. Access must be explicitly granted.
+ * - **Authentication Required**: No unauthenticated access is permitted to any resource.
+ * - **Organization-Scoped Access**: The cornerstone of this security model is the `isMemberOfOrg()` check, which verifies that the authenticated user belongs to the organization whose data is being accessed. This is accomplished by looking up the user's profile at `/users/$(request.auth.uid)`.
+ * - **User Profile Security**: The `/users` collection is not listable to prevent user enumeration. Users can only create, read, and update their own profile document.
+ * - **Backend-Only Writes**: Sensitive collections like `activity_logs` and `settings` are read-only from the client to protect audit trail integrity and prevent unauthorized configuration changes. These should be managed by a trusted backend server.
+ *
+ * ## Denormalization for Authorization
+ * The `organizationId` is denormalized across nearly all top-level organizational entities (jobs, candidates, applications, etc.). This is a critical design choice that allows security rules to perform fast, cheap, and simple authorization checks without needing costly `get()` calls to parent documents.
+ *
+ * ## Structural Segregation
+ * User-private data (`/users/{userId}`) is structurally segregated from shared organizational data (`/organizations/{organizationId}/...`). This clear separation simplifies rule logic, enhances security, and improves performance for list operations by ensuring that queries for organizational data do not mix with private user data.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper Functions
+
+    /**
+     * Checks if a user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the requesting user is the owner of the document,
+     * based on a matching UID.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    /**
+     * Retrieves the role of the requesting user from their user document.
+     */
+    function getRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    /**
+     * Verifies that a document already exists.
+     * Crucial for update and delete operations to prevent acting on non-existent data.
+     */
+    function isExistingDoc() {
+      return resource != null;
+    }
+
+    /**
+     * Checks if the requesting user belongs to the specified organization.
+     * This is the core function for enforcing multi-tenancy.
+     * It performs a get() call to the user's own profile to verify their organizationId.
+     */
+    function isMemberOfOrg(organizationId) {
+      return isSignedIn() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.organizationId == organizationId;
+    }
+
+    /**
+     * @description Controls access to organization profile documents.
+     * @path /organizations/{organizationId}
+     * @allow A user who is part of organization 'org_abc' can read its profile.
+     * @deny A user from 'org_xyz' cannot read 'org_abc's profile. Client-side writes are blocked for non-owners.
+     * @principle Enforces multi-tenancy; data is readable by members, writable by the owner.
+     */
+    match /organizations/{organizationId} {
+      allow get: if isMemberOfOrg(organizationId);
+      allow list: if false; // Do not allow listing all organizations
+      allow create: if isOwner(request.resource.data.ownerId); // Only the owner can create their organization doc
+      allow update: if isOwner(resource.data.ownerId) && isMemberOfOrg(organizationId);
+      allow delete: if false; // Organizations cannot be deleted from the client
+    }
+
+    /**
+     * @description Controls access to user profile documents.
+     * @path /users/{userId}
+     * @allow User 'user_abc' (create) their own document at /users/user_abc.
+     * @allow User 'user_abc' (get, update) their own document at /users/user_abc.
+     * @deny User 'user_xyz' cannot read or write to /users/user_abc. Listing users is forbidden.
+     * @principle Enforces strict data ownership for user-private information.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if false; // Users should not delete their own account from the client.
+
+      /**
+       * @description User-private notifications.
+       * @path /users/{userId}/notifications/{notificationId}
+       * @allow Users can read and update their own notifications (e.g., mark as read).
+       * @deny Users cannot access another user's notifications. Writes are restricted.
+       */
+      match /notifications/{notificationId} {
+        allow get, list, update: if isOwner(userId);
+        allow create, delete: if false; // Only backend can create/delete notifications
+      }
+    }
+
+    /**
+     * @description Rules for job postings within an organization.
+     * @path /organizations/{organizationId}/jobs/{jobId}
+     * @allow (create, get, update, delete) A member of 'org_abc' can manage jobs.
+     * @deny A user from 'org_xyz' cannot read or write jobs in 'org_abc'.
+     * @principle Enforces organization-level access for collaboration.
+     */
+    match /organizations/{organizationId}/jobs/{jobId} {
+      allow get, list, create, update, delete: if isMemberOfOrg(organizationId);
+    }
+
+    /**
+     * @description Rules for candidate profiles within an organization.
+     * @path /organizations/{organizationId}/candidates/{candidateId}
+     * @allow (create, get, update, delete) A member of 'org_abc' can manage any candidate profile within their organization.
+     * @deny A user from 'org_xyz' cannot access candidates in 'org_abc'.
+     * @principle Promotes collaboration by allowing any team member within an organization to manage candidates.
+     */
+    match /organizations/{organizationId}/candidates/{candidateId} {
+      allow get, list, create, update, delete: if isMemberOfOrg(organizationId);
+    }
+
+    /**
+     * @description Rules for job applications within an organization.
+     * @path /organizations/{organizationId}/applications/{applicationId}
+     * @allow (create, get, update, delete) A member of 'org_abc' can manage any job application within their organization.
+     * @deny A user from 'org_xyz' cannot access applications in 'org_abc'.
+     * @principle Promotes collaboration by allowing any team member within an organization to manage applications.
+     */
+    match /organizations/{organizationId}/applications/{applicationId} {
+      allow get, list, create, update, delete: if isMemberOfOrg(organizationId);
+    }
+
+    /**
+     * @description Rules for interviews within an organization.
+     * @path /organizations/{organizationId}/interviews/{interviewId}
+     * @allow A member of the organization can manage interviews.
+     * @principle Organization-scoped access.
+     */
+    match /organizations/{organizationId}/interviews/{interviewId} {
+      allow get, list, create, update, delete: if isMemberOfOrg(organizationId);
+    }
+    
+    /**
+     * @description Rules for read-only activity logs.
+     * @path /organizations/{organizationId}/activity_logs/{activityLogId}
+     * @allow (get, list) A member of 'org_abc' can read any activity log within their organization.
+     * @deny Client-side writes are forbidden. Logs must be created by a trusted backend.
+     * @principle Protects audit trail integrity by making logs immutable from the client.
+     */
+    match /organizations/{organizationId}/activity_logs/{activityLogId} {
+      allow get, list: if isMemberOfOrg(organizationId);
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Rules for organization-specific settings.
+     * @path /organizations/{organizationId}/settings/{settingId}
+     * @allow (get, list) A member of 'org_abc' can read settings.
+     * @deny Client-side writes are forbidden for non-owners.
+     * @principle Protects sensitive configuration by making it read-only for most clients.
+     */
+    match /organizations/{organizationId}/settings/{settingId} {
+      allow get, list: if isMemberOfOrg(organizationId);
+      allow create, update, delete: if isMemberOfOrg(organizationId) && getRole() == 'Owner';
+    }
+
+    /**
+     * @description Rules for collaborative email templates.
+     * @path /organizations/{organizationId}/email_templates/{emailTemplateId}
+     * @allow (create, get, update, delete) Any member of 'org_abc' can manage email templates for their organization.
+     * @deny A user from 'org_xyz' cannot access templates in 'org_abc'.
+     * @principle Promotes collaboration by allowing any team member to manage shared templates.
+     */
+    match /organizations/{organizationId}/email_templates/{emailTemplateId} {
+      allow get, list, create, update, delete: if isMemberOfOrg(organizationId);
+    }
+
+    /**
+     * @description Rules for challenges and competitions.
+     * @path /organizations/{organizationId}/challenges/{challengeId}
+     * @allow A member of the organization can manage challenges. Candidates can read them.
+     * @principle Organization-scoped access for management, public read for candidates.
+     */
+    match /organizations/{organizationId}/challenges/{challengeId} {
+      allow get, list: if isSignedIn(); // Allow any signed-in user to see challenges
+      allow create, update, delete: if isMemberOfOrg(organizationId) && getRole() != 'Candidate';
+    }
+  }
+}

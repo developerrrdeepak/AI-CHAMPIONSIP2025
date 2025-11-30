@@ -1,0 +1,30 @@
+# Settings to manage and configure a Firebase App Hosting backend.
+# https://firebase.google.com/docs/app-hosting/configure
+
+# Specifies the build command for the application.
+build: 
+  # Command to build the Next.js application.
+  command: "npm run build"
+
+# Defines the runtime configuration for the application.
+runConfig:
+  # The number of CPU cores to allocate to each instance.
+  cpu: 1
+  # The amount of memory to allocate to each instance.
+  memoryMiB: 512
+  # The maximum number of instances to scale to.
+  maxInstances: 2
+
+# Defines the environment variables for the application.
+env:
+  - variable: VULTR_API_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+  - variable: RAINDROP_API_KEY
+    availability:
+      - BUILD
+      - RUNTIME
+
+# Required for API routes that use Firebase Admin SDK
+serviceAccount: studio-service-account

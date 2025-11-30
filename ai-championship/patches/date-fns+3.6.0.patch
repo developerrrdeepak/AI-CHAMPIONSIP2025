@@ -1,0 +1,33 @@
+diff --git a/node_modules/date-fns/package.json b/node_modules/date-fns/package.json
+index 2489a53..b590b61 100644
+--- a/node_modules/date-fns/package.json
++++ b/node_modules/date-fns/package.json
+@@ -34,7 +34,27 @@
+     "./fp": {
+       "import": "./fp/index.mjs",
+       "require": "./fp/index.js"
+-    }
++    },
++    "./transpose": {
++      "import": "./transpose/index.mjs",
++      "require": "./transpose/index.js"
++    },
++    "./weeksToDays": {
++      "import": "./weeksToDays/index.mjs",
++      "require": "./weeksToDays/index.js"
++    },
++    "./yearsToDays": {
++      "import": "./yearsToDays/index.mjs",
++      "require": "./yearsToDays/index.js"
++    },
++    "./yearsToMonths": {
++      "import": "./yearsToMonths/index.mjs",
++      "require": "./yearsToMonths/index.js"
++    },
++    "./yearsToQuarters": {
++      "import": "./yearsToQuarters/index.mjs",
++      "require": "./yearsToQuarters/index.js"
++    }
+   },
+   "sideEffects": false,
+   "typings": "./index.d.ts",
