@@ -56,10 +56,39 @@ export default function DashboardPage() {
 
   return (
     <div className="flex-1 space-y-8 py-6">
-      <PageHeader
-        title={`Welcome to your ${role} Dashboard`}
-        description="Here's an overview of your account and recent activity."
-      />
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary via-purple-600 to-pink-600 p-8 text-white">
+        <div className="absolute inset-0 bg-grid-white/10" />
+        <div className="relative z-10">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold mb-2">Welcome back, {role}! 👋</h1>
+              <p className="text-white/90 text-lg">Here's what's happening with your recruitment today</p>
+            </div>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30">
+              <div className="h-2 w-2 bg-green-400 rounded-full animate-pulse" />
+              <span className="text-sm font-semibold">Live Dashboard</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-4 mt-6">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <div className="text-3xl font-bold">{jobs?.length || 0}</div>
+              <div className="text-sm text-white/80">Active Jobs</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <div className="text-3xl font-bold">{candidates?.length || 0}</div>
+              <div className="text-sm text-white/80">Total Candidates</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <div className="text-3xl font-bold">{applications?.length || 0}</div>
+              <div className="text-sm text-white/80">Applications</div>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+              <div className="text-3xl font-bold">{interviews?.length || 0}</div>
+              <div className="text-sm text-white/80">Interviews</div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {widgets.map((widget, idx) => {
           const gradients = [
