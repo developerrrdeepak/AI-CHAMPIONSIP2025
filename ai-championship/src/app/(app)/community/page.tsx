@@ -1,120 +1,78 @@
 'use client';
 
-import { useState } from 'react';
-import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, query, orderBy, collectionGroup } from 'firebase/firestore';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { useFirebase } from '@/firebase';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Send, MessageCircle, Heart, Share2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Plus } from 'lucide-react';
+import { PostCard } from '@/components/community/PostCard';
+import { CreatePostModal } from '@/components/community/CreatePostModal';
+import { createPost, getExplorePosts, toggleLike, savePost } from '@/lib/community-helpers';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function CommunityPage() {
-  const { user, firestore } = useFirebase();
-  const { toast } = useToast();
-  const [postContent, setPostContent] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { user, firestore, storage } = useFirebase();
+  const [activeTab, setActiveTab] = useState('explore');
+  const [posts, setPosts] = useState<any[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const postsQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collectionGroup(firestore, 'posts'), orderBy('createdAt', 'desc'));
+  useEffect(() => {
+    if (!firestore) return;
+    setLoading(true);
+    const unsubscribe = getExplorePosts(firestore, (data) => { setPosts(data); setLoading(false); });
+    return () => unsubscribe?.();
   }, [firestore]);
 
-  const { data: posts } = useCollection(postsQuery);
-
-  const handlePost = async () => {
-    if (!user || !firestore || !postContent.trim()) return;
-
-    setLoading(true);
-    try {
-      await addDoc(collection(firestore, 'posts'), {
-        content: postContent,
-        authorId: user.uid,
-        authorName: user.displayName,
-        authorPhoto: user.photoURL,
-        likes: 0,
-        comments: 0,
-        createdAt: new Date().toISOString(),
-      });
-
-      setPostContent('');
-      toast({ title: 'Posted!', description: 'Your post has been shared with the community.' });
-    } catch (error) {
-      toast({ title: 'Error', description: 'Failed to post.', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
+  const handleCreatePost = async (content: string, imageFile: File | null) => {
+    if (!firestore || !storage || !user) return;
+    await createPost(firestore, storage, user.uid, user.displayName || 'User', user.photoURL || '', content, imageFile);
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <Card className="border-2 border-primary/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageCircle className="h-5 w-5" />
-            Community Feed
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <Avatar>
-              <AvatarImage src={user?.photoURL || ''} />
-              <AvatarFallback>{user?.displayName?.charAt(0) || 'U'}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 space-y-2">
-              <Textarea
-                placeholder="Share your thoughts with the community..."
-                value={postContent}
-                onChange={(e) => setPostContent(e.target.value)}
-                rows={3}
-              />
-              <Button onClick={handlePost} disabled={loading || !postContent.trim()}>
-                <Send className="h-4 w-4 mr-2" />
-                Post
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-2">Community</h1>
+          <p className="text-muted-foreground">Connect with peers and share your professional journey.</p>
+        </div>
 
-      <div className="space-y-4">
-        {posts?.map((post: any) => (
-          <Card key={post.id} className="hover:shadow-lg transition-shadow">
-            <CardContent className="pt-6">
-              <div className="flex gap-4">
-                <Avatar>
-                  <AvatarImage src={post.authorPhoto} />
-                  <AvatarFallback>{post.authorName?.charAt(0) || 'U'}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-semibold">{post.authorName}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(post.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <p className="text-sm mb-4">{post.content}</p>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <button className="flex items-center gap-1 hover:text-red-500">
-                      <Heart className="h-4 w-4" />
-                      {post.likes || 0}
-                    </button>
-                    <button className="flex items-center gap-1 hover:text-primary">
-                      <MessageCircle className="h-4 w-4" />
-                      {post.comments || 0}
-                    </button>
-                    <button className="flex items-center gap-1 hover:text-blue-500">
-                      <Share2 className="h-4 w-4" />
-                      Share
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+        <div className="flex items-center justify-between mb-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="explore">Explore</TabsTrigger>
+              <TabsTrigger value="following">Following</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Button onClick={() => setIsModalOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Post
+          </Button>
+        </div>
+
+        <div className="max-w-2xl mx-auto space-y-6">
+          {loading ? (
+            [...Array(3)].map((_, i) => <Skeleton key={i} className="h-64" />)
+          ) : (
+            posts.map((post) => (
+              <PostCard
+                key={post.id}
+                post={post}
+                currentUserId={user?.uid || ''}
+                onLike={(id) => toggleLike(firestore!, id)}
+                onSave={(id) => savePost(firestore!, id, user?.uid || '', post.savedBy?.includes(user?.uid))}
+              />
+            ))
+          )}
+        </div>
       </div>
+
+      <CreatePostModal
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onPost={handleCreatePost}
+        user={user}
+      />
     </div>
   );
 }
