@@ -1,18 +1,20 @@
 
 'use client';
 
-import { notFound, useParams, useSearchParams } from "next/navigation";
+import { notFound, useParams, useSearchParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useFirebase, useDoc, useMemoFirebase } from "@/firebase";
-import { doc } from "firebase/firestore";
+import { useFirebase, useDoc, useCollection, useMemoFirebase } from "@/firebase";
+import { doc, collection, query, where, setDoc } from "firebase/firestore";
 import type { Challenge } from "@/lib/definitions";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, Trophy, Sparkles } from "lucide-react";
-import { useMemo } from "react";
+import { Calendar, Trophy, Sparkles, Users } from "lucide-react";
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function ChallengeDetailPage() {
   const params = useParams();
@@ -35,6 +37,16 @@ export default function ChallengeDetailPage() {
 
   const { data: challenge, isLoading: isChallengeLoading } = useDoc<Challenge>(challengeRef);
 
+  const participantsQuery = useMemoFirebase(() => {
+    if (!firestore || !organizationId || !id) return null;
+    return query(
+      collection(firestore, `organizations/${organizationId}/challenge_participants`),
+      where('challengeId', '==', id)
+    );
+  }, [firestore, organizationId, id]);
+
+  const { data: participants, isLoading: isLoadingParticipants } = useCollection(participantsQuery);
+
   if (isChallengeLoading) {
     return <ChallengeDetailSkeleton />;
   }
@@ -44,18 +56,61 @@ export default function ChallengeDetailPage() {
     notFound();
   }
 
-  return <ChallengeContent challenge={challenge} isCandidate={isCandidate} />;
+  return <ChallengeContent challenge={challenge} isCandidate={isCandidate} participants={participants || []} organizationId={organizationId || ''} />;
 }
 
 
-function ChallengeContent({ challenge, isCandidate }: { challenge: Challenge, isCandidate: boolean }) {
+function ChallengeContent({ challenge, isCandidate, participants, organizationId }: { challenge: Challenge, isCandidate: boolean, participants: any[], organizationId: string }) {
+    const { user, firestore } = useFirebase() as any;
+    const { toast } = useToast();
+    const router = useRouter();
+    const [isJoining, setIsJoining] = useState(false);
+
+    const hasJoined = useMemo(() => {
+      return participants.some(p => p.userId === user?.uid);
+    }, [participants, user]);
+
+    const handleJoin = async () => {
+      if (!user || !firestore || !organizationId) return;
+
+      setIsJoining(true);
+      try {
+        const participantId = `part_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        const participantRef = doc(firestore, `organizations/${organizationId}/challenge_participants`, participantId);
+
+        await setDoc(participantRef, {
+          id: participantId,
+          challengeId: challenge.id,
+          userId: user.uid,
+          userName: user.displayName || 'Participant',
+          userEmail: user.email,
+          joinedAt: new Date().toISOString(),
+          status: 'active'
+        });
+
+        toast({
+          title: 'Joined Challenge!',
+          description: 'You are now participating in this challenge.',
+        });
+      } catch (error) {
+        console.error('Join error:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to join challenge. Please try again.',
+          variant: 'destructive'
+        });
+      } finally {
+        setIsJoining(false);
+      }
+    };
+
     return (
     <>
       <PageHeader title={challenge.title} description={<Badge variant="secondary">{challenge.type}</Badge>}>
         {isCandidate && (
-            <Button size="lg" disabled>
+            <Button size="lg" onClick={handleJoin} disabled={isJoining || hasJoined}>
               <Sparkles className="mr-2 h-4 w-4" />
-              Participate Now
+              {hasJoined ? 'Already Joined' : isJoining ? 'Joining...' : 'Join Now'}
             </Button>
         )}
       </PageHeader>
@@ -91,8 +146,46 @@ function ChallengeContent({ challenge, isCandidate }: { challenge: Challenge, is
                             <p className="text-muted-foreground">{new Date(challenge.deadline).toLocaleString()}</p>
                         </div>
                     </div>
+                    <div className="flex items-start gap-2">
+                        <Users className="w-4 h-4 mt-1 text-muted-foreground" />
+                        <div>
+                            <p className="font-semibold">Participants</p>
+                            <p className="text-muted-foreground">{participants.length} joined</p>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
+
+            {participants.length > 0 && (
+              <Card className={cn(isCandidate && 'glassmorphism')}>
+                  <CardHeader>
+                      <CardTitle>Participants</CardTitle>
+                      <CardDescription>Real-time participant list</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                      {participants.slice(0, 10).map((participant) => (
+                        <div key={participant.id} className="flex items-center gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback className="text-xs">
+                              {participant.userName?.charAt(0) || 'P'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{participant.userName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Joined {new Date(participant.joinedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                      {participants.length > 10 && (
+                        <p className="text-xs text-muted-foreground text-center pt-2">
+                          +{participants.length - 10} more participants
+                        </p>
+                      )}
+                  </CardContent>
+              </Card>
+            )}
         </div>
       </div>
     </>

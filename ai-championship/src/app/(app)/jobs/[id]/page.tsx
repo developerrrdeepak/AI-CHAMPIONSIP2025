@@ -198,7 +198,7 @@ export default function JobDetailPage() {
       <PageHeader title={job.title} description={`${job.department} · ${job.isRemote ? 'Remote' : `${job.locationCity}, ${job.locationCountry}`}`}>
         {isCandidate ? (
             <Button asChild size="lg">
-              <Link href={`/candidates/new?jobId=${id}&role=Candidate`}>Apply Now</Link>
+              <Link href={`/applications/new?jobId=${id}`}>Apply Now</Link>
             </Button>
         ) : (
             <div className="flex gap-2">
