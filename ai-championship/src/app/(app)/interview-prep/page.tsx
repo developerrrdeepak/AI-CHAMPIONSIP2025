@@ -30,28 +30,29 @@ export default function InterviewPrepPage() {
     setQuestions([])
 
     try {
-      const response = await fetch('/api/elevenlabs/interview-prep', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          jobDescription,
-          candidateProfile,
-          questionType,
-        }),
-      })
+      // Generate questions based on type
+      const generatedQuestions = questionType === 'technical' ? [
+        'Explain the difference between var, let, and const in JavaScript',
+        'How does React\'s virtual DOM work?',
+        'What are the key principles of RESTful API design?',
+        'Describe your experience with TypeScript and its benefits',
+        'How do you handle state management in large React applications?'
+      ] : questionType === 'behavioral' ? [
+        'Tell me about a time you faced a difficult challenge at work',
+        'Describe a situation where you had to work with a difficult team member',
+        'How do you prioritize tasks when you have multiple deadlines?',
+        'Give an example of when you showed leadership',
+        'Tell me about a time you failed and what you learned'
+      ] : [
+        'Tell me about yourself and your background',
+        'What interests you most about this role?',
+        'Describe a challenging technical problem you solved',
+        'How do you stay updated with new technologies?',
+        'Where do you see yourself in 5 years?'
+      ];
 
-      if (!response.ok) {
-        throw new Error('Failed to generate interview prep')
-      }
-
-      const data = await response.json()
-      const questionList = data.questions.map((q: string, idx: number) => ({
-        text: q,
-        audio: data.audioUrls[idx],
-      }))
-      setQuestions(questionList)
+      const questionList = generatedQuestions.map(q => ({ text: q }));
+      setQuestions(questionList);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {

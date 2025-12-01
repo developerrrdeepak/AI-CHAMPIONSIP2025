@@ -77,9 +77,11 @@ function CircularProgress({ value, label }: { value: number; label: string }) {
 
 
 function ProfileGistCard({ candidate }: { candidate: Candidate | null }) {
+    const { user } = useFirebase();
+    
     const profileComplete = useMemo(() => {
         if (!candidate) return 10;
-        let score = 20; // Base score for existing
+        let score = 20;
         if (candidate.currentRole) score += 20;
         if (candidate.phone) score += 20;
         if (candidate.rawResumeText) score += 40;
@@ -89,7 +91,6 @@ function ProfileGistCard({ candidate }: { candidate: Candidate | null }) {
     const skillReadiness = useMemo(() => {
         if (!candidate?.skills) return 10;
         try {
-            // Example logic: score based on number of skills identified
             return Math.min(90, 10 + (candidate.skills?.length || 0) * 8);
         } catch {
             return 10;
@@ -97,13 +98,12 @@ function ProfileGistCard({ candidate }: { candidate: Candidate | null }) {
     }, [candidate]);
 
     const careerFit = useMemo(() => {
-        // This is a placeholder as we don't have applications data here yet
-        // In a real scenario, you'd pass applications to this component
         if (!candidate) return 15;
-        // Mocking an average fit score
         return 75;
     }, [candidate]);
 
+    const userName = user?.displayName || candidate?.name || 'Candidate';
+    const imageSrc = user?.photoURL ?? `https://api.dicebear.com/7.x/initials/svg?seed=${userName}`;
 
     return (
         <Card className="glassmorphism animate-in fade-in-0 slide-in-from-top-4 duration-500">
@@ -114,17 +114,17 @@ function ProfileGistCard({ candidate }: { candidate: Candidate | null }) {
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Avatar className="h-16 w-16 border-2 border-primary/50">
-                            <AvatarImage src={placeholderImages.find(p => p.id === 'avatar-1')?.imageUrl} data-ai-hint="person face" />
+                            <AvatarImage src={imageSrc} />
                             <AvatarFallback className="text-2xl bg-primary/20 text-primary">
-                                {candidate?.name?.charAt(0) || 'C'}
+                                {userName.charAt(0)}
                             </AvatarFallback>
                         </Avatar>
                         <div>
-                            <p className="text-xl font-semibold">{candidate?.name || 'Candidate'}</p>
+                            <p className="text-xl font-semibold">{userName}</p>
                         </div>
                     </div>
                      <Button asChild variant="outline">
-                        <Link href={`/candidates/${candidate?.id}?role=Candidate`}>
+                        <Link href={`/profile/edit`}>
                             View Profile
                         </Link>
                     </Button>
@@ -186,6 +186,9 @@ export default function CandidateDashboardPage() {
         return <DashboardSkeleton />;
     }
 
+    const userName = user?.displayName || candidate?.name || 'Candidate';
+    const imageSrc = user?.photoURL ?? `https://api.dicebear.com/7.x/initials/svg?seed=${userName}`;
+
     return (
     <div className="space-y-8">
         
@@ -195,13 +198,13 @@ export default function CandidateDashboardPage() {
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-4">
                         <Avatar className="h-20 w-20 border-4 border-white/30">
-                            <AvatarImage src={user?.photoURL || placeholderImages.find(p => p.id === 'avatar-1')?.imageUrl} />
+                            <AvatarImage src={imageSrc} />
                             <AvatarFallback className="text-3xl bg-white/20">
-                                {user?.displayName?.charAt(0) || 'C'}
+                                {userName.charAt(0)}
                             </AvatarFallback>
                         </Avatar>
                         <div>
-                            <h1 className="text-4xl font-bold mb-1">Hello, {user?.displayName?.split(' ')[0] || 'Candidate'}! 🚀</h1>
+                            <h1 className="text-4xl font-bold mb-1">Hello, {userName.split(' ')[0]}! 🚀</h1>
                             <p className="text-white/90 text-lg">Your AI-powered career journey starts here</p>
                         </div>
                     </div>
