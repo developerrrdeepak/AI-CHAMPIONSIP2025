@@ -3,6 +3,9 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Notifications } from "./notifications";
 import { SidebarTrigger } from "./ui/sidebar";
+import { Button } from "./ui/button";
+import { MessageSquare } from "lucide-react";
+import Link from "next/link";
 
 export function Header() {
   return (
@@ -12,6 +15,12 @@ export function Header() {
         <Breadcrumbs />
       </div>
       <div className="flex flex-1 items-center justify-end gap-2 md:gap-4">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/ai-assistant">
+            <MessageSquare className="h-5 w-5" />
+            <span className="sr-only">AI Chat</span>
+          </Link>
+        </Button>
         <ThemeToggle />
         <Notifications />
       </div>

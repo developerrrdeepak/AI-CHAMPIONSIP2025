@@ -307,23 +307,23 @@ export default function ProfileEditPage() {
             </div>
 
             <div>
-              <Label>Resume (PDF) *</Label>
+              <Label>Resume (PDF, DOC, DOCX)</Label>
               <Label htmlFor="resume" className="cursor-pointer block mt-2">
                 <div className="flex items-center gap-2 px-4 py-3 border-2 border-dashed rounded-lg hover:bg-accent hover:border-primary transition-colors">
                   <FileText className="h-5 w-5 text-muted-foreground" />
                   <span className="text-sm">
-                    {resumeFile ? resumeFile.name : 'Click to upload resume (PDF)'}
+                    {resumeFile ? resumeFile.name : 'Click to upload resume'}
                   </span>
                 </div>
                 <Input 
                   id="resume" 
                   type="file" 
-                  accept=".pdf,application/pdf" 
+                  accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" 
                   className="hidden" 
                   onChange={(e) => setResumeFile(e.target.files?.[0] || null)} 
                 />
               </Label>
-              <p className="text-xs text-muted-foreground mt-1">PDF format (max 10MB)</p>
+              <p className="text-xs text-muted-foreground mt-1">PDF, DOC, or DOCX format (max 10MB)</p>
             </div>
 
             <Button type="submit" disabled={loading} className="w-full" size="lg">

@@ -191,45 +191,6 @@ export default function CandidateDashboardPage() {
 
     return (
     <div className="space-y-8">
-        
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 p-8 text-white mb-8">
-            <div className="absolute inset-0 bg-grid-white/10" />
-            <div className="relative z-10">
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-4">
-                        <Avatar className="h-20 w-20 border-4 border-white/30">
-                            <AvatarImage src={imageSrc} />
-                            <AvatarFallback className="text-3xl bg-white/20">
-                                {userName.charAt(0)}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <h1 className="text-4xl font-bold mb-1">Hello, {userName.split(' ')[0]}! 🚀</h1>
-                            <p className="text-white/90 text-lg">Your AI-powered career journey starts here</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30">
-                        <div className="h-2 w-2 bg-green-400 rounded-full animate-pulse" />
-                        <span className="text-sm font-semibold">Live Updates</span>
-                    </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-                        <div className="text-3xl font-bold">{profileComplete}%</div>
-                        <div className="text-sm text-white/80">Profile Complete</div>
-                    </div>
-                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-                        <div className="text-3xl font-bold">{skillReadiness}%</div>
-                        <div className="text-sm text-white/80">Skill Readiness</div>
-                    </div>
-                    <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-                        <div className="text-3xl font-bold">{careerFit}%</div>
-                        <div className="text-sm text-white/80">Career Fit</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
         <ProfileGistCard candidate={candidate || null} />
 
         <Card className="glassmorphism animate-in fade-in-0 slide-in-from-top-4 duration-500 delay-400">
