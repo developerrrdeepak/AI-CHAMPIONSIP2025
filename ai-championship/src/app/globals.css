@@ -61,6 +61,14 @@
   }
   body {
     @apply bg-gradient-to-br from-background via-secondary/30 to-primary/5 text-foreground min-h-screen;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  
+  html {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
   }
 }
 

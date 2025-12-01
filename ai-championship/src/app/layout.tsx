@@ -14,6 +14,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 export const metadata: Metadata = {
   title: 'HireVision – AI Recruiting OS',
   description: 'The AI-Powered Operating System for Modern Recruiting Teams.',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes',
 };
 
 export default function RootLayout({
@@ -23,6 +24,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
+      </head>
       <body className={cn("font-sans antialiased bg-background text-foreground", inter.variable)}>
         <ThemeProvider storageKey="hirevision-theme" defaultTheme="light">
             <FirebaseClientProvider>
