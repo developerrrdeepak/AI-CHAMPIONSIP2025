@@ -192,7 +192,7 @@ export default function CandidatesPage() {
                     if (experienceFilter === '0-2') return exp <= 2;
                     if (experienceFilter === '3-5') return exp >= 3 && exp <= 5;
                     if (experienceFilter === '6-10') return exp >= 6 && exp <= 10;
-                    if (experienceFilter === '10+') return exp > 10;
+                    if (experienceFilter === '10plus') return exp > 10;
                     return true;
                   })()
                 : true;
@@ -345,12 +345,12 @@ export default function CandidatesPage() {
               
               <div>
                 <Label>Skills</Label>
-                <Select value={skillFilter} onValueChange={setSkillFilter}>
+                <Select value={skillFilter || 'all-skills'} onValueChange={(v) => setSkillFilter(v === 'all-skills' ? '' : v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Skills" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Skills</SelectItem>
+                    <SelectItem value="all-skills">All Skills</SelectItem>
                     {allSkills.map(skill => <SelectItem key={skill} value={skill}>{skill}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -358,7 +358,7 @@ export default function CandidatesPage() {
 
               <div>
                 <Label>Experience</Label>
-                <Select value={experienceFilter} onValueChange={setExperienceFilter}>
+                <Select value={experienceFilter || 'all'} onValueChange={setExperienceFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Experience" />
                   </SelectTrigger>
@@ -367,14 +367,14 @@ export default function CandidatesPage() {
                     <SelectItem value="0-2">0-2 years</SelectItem>
                     <SelectItem value="3-5">3-5 years</SelectItem>
                     <SelectItem value="6-10">6-10 years</SelectItem>
-                    <SelectItem value="10+">10+ years</SelectItem>
+                    <SelectItem value="10plus">10+ years</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
                 <Label>Location</Label>
-                <Select value={locationFilter} onValueChange={setLocationFilter}>
+                <Select value={locationFilter || 'all'} onValueChange={setLocationFilter}>
                   <SelectTrigger>
                     <SelectValue placeholder="All Locations" />
                   </SelectTrigger>

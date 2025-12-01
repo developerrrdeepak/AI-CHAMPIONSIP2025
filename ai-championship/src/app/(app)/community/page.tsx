@@ -182,11 +182,11 @@ export default function CommunityPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleLike(post.id, post.likes)}
-                    className={post.likes.includes(userId!) ? 'text-red-500' : ''}
+                    onClick={() => handleLike(post.id, Array.isArray(post.likes) ? post.likes : [])}
+                    className={(Array.isArray(post.likes) && post.likes.includes(userId!)) ? 'text-red-500' : ''}
                   >
-                    <Heart className={`h-4 w-4 mr-1 ${post.likes.includes(userId!) ? 'fill-current' : ''}`} />
-                    {post.likes.length}
+                    <Heart className={`h-4 w-4 mr-1 ${(Array.isArray(post.likes) && post.likes.includes(userId!)) ? 'fill-current' : ''}`} />
+                    {Array.isArray(post.likes) ? post.likes.length : 0}
                   </Button>
                   <Button variant="ghost" size="sm">
                     <MessageCircle className="h-4 w-4 mr-1" />
