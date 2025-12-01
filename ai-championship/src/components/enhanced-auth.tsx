@@ -131,7 +131,8 @@ export function EnhancedAuth({ mode, userType, onSuccess }: EnhancedAuthProps) {
       }
 
       onSuccess?.();
-      router.push('/');
+      const redirectPath = userType === 'employer' ? '/dashboard' : '/candidate/dashboard';
+      router.push(redirectPath);
     } catch (error: any) {
       console.error('Google auth error:', error);
       console.error('Error code:', error.code);
@@ -217,7 +218,8 @@ export function EnhancedAuth({ mode, userType, onSuccess }: EnhancedAuthProps) {
       });
 
       onSuccess?.();
-      router.push('/');
+      const redirectPath = userType === 'employer' ? '/dashboard' : '/candidate/dashboard';
+      router.push(redirectPath);
     } catch (error: any) {
       setError(error.message);
       toast({
