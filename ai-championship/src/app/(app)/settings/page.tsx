@@ -317,7 +317,7 @@ export default function SettingsPage() {
             
             <Tabs defaultValue="organization" className="space-y-4">
                 <TabsList>
-                    <TabsTrigger value="organization">Organization</TabsTrigger>
+                    <TabsTrigger value="organization">Company Info</TabsTrigger>
                     <TabsTrigger value="team" onClick={() => router.push('/settings/team')}>Team</TabsTrigger>
                     <TabsTrigger value="account">Account</TabsTrigger>
                 </TabsList>

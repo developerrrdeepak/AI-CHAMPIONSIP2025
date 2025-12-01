@@ -112,9 +112,11 @@ export default function ProfileEditPage() {
       let resumeURL = '';
 
       if (photoFile) {
-        const photoRef = ref(storage, `profiles/${user.uid}/photo.jpg`);
+        const photoRef = ref(storage, `profiles/${user.uid}/photo_${Date.now()}.jpg`);
         await uploadBytes(photoRef, photoFile);
         photoURL = await getDownloadURL(photoRef);
+      } else if (photoPreview && !photoFile) {
+        photoURL = photoPreview;
       }
 
       if (resumeFile) {

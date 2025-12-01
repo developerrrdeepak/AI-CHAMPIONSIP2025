@@ -123,7 +123,7 @@ const navConfig: Record<string, NavSection[]> = {
     },
     {
         items: [
-            { href: '/candidates', icon: User, label: 'Profile' },
+            { href: '/profile/edit', icon: User, label: 'Profile' },
             { href: '/settings', icon: Settings, label: 'Settings' },
         ]
     }
@@ -169,19 +169,7 @@ function NavItem({ item }: { item: NavItem }) {
         )
     }
 
-     if (item.href === '/candidates' && role === 'Candidate' && user) {
-        return (
-             <Link href={`/candidates/${user.id}?role=${role}`}>
-                 <SidebarMenuButton
-                    isActive={pathname.startsWith('/candidates/')}
-                    tooltip={item.label}
-                    variant="ghost"
-                >
-                    <item.icon className="h-5 w-5" />
-                </SidebarMenuButton>
-            </Link>
-        )
-    }
+
 
     return (
         <Link href={linkHref}>
