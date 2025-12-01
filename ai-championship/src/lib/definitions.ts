@@ -313,3 +313,45 @@ export type Conversation = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type ConnectionStatus = 'pending' | 'accepted' | 'rejected';
+
+export type Connection = {
+  id: string;
+  requesterId: string;
+  requesterName: string;
+  requesterRole: UserRole;
+  receiverId: string;
+  receiverName: string;
+  receiverRole: UserRole;
+  status: ConnectionStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PostType = 'achievement' | 'project' | 'job' | 'article';
+
+export type Post = {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorRole: UserRole;
+  authorAvatar?: string;
+  type: PostType;
+  title: string;
+  content: string;
+  imageUrl?: string;
+  jobId?: string;
+  likes: string[];
+  comments: Comment[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Comment = {
+  id: string;
+  userId: string;
+  userName: string;
+  content: string;
+  createdAt: string;
+};

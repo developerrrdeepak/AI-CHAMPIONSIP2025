@@ -3,14 +3,14 @@
 
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Star, Search, Bookmark, Mail, Sparkles } from 'lucide-react';
+import { PlusCircle, Star, Search, Bookmark, Mail, Sparkles, UserPlus } from 'lucide-react';
 import Link from 'next/link';
 import { DataTable } from '@/components/data-table';
 import type { Candidate, Application, Job } from '@/lib/definitions';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useRouter } from 'next/navigation';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, getDocs, doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { collection, query, where, orderBy, getDocs, doc, updateDoc, arrayUnion, addDoc } from 'firebase/firestore';
 import { useMemo, useState, useEffect } from 'react';
 import { placeholderImages } from '@/lib/placeholder-images';
 import { Badge } from '@/components/ui/badge';
@@ -509,9 +509,40 @@ export default function CandidatesPage() {
                       size="sm"
                       variant="outline"
                       className="flex-1"
-                      onClick={() => handleFindSimilar(candidate)}
+                      onClick={async () => {
+                        if (!firestore || !userId) return;
+                        try {
+                          await addDoc(collection(firestore, 'connections'), {
+                            requesterId: userId,
+                            requesterName: displayName,
+                            requesterRole: role,
+                            receiverId: candidate.id,
+                            receiverName: candidate.name,
+                            receiverRole: 'Candidate',
+                            status: 'pending',
+                            createdAt: new Date().toISOString(),
+                            updatedAt: new Date().toISOString(),
+                          });
+                          await updateDoc(doc(firestore, 'users', candidate.id), {
+                            notifications: arrayUnion({
+                              id: `conn-req-${Date.now()}`,
+                              type: 'connection_request',
+                              message: `${displayName} sent you a connection request`,
+                              timestamp: new Date().toISOString(),
+                              read: false,
+                            })
+                          });
+                          toast({
+                            title: 'Connection request sent',
+                            description: `Request sent to ${candidate.name}`,
+                          });
+                        } catch (error) {
+                          console.error(error);
+                        }
+                      }}
+                      title="Connect"
                     >
-                      <Sparkles className="h-4 w-4" />
+                      <UserPlus className="h-4 w-4" />
                     </Button>
                   </CardFooter>
                 </Card>
