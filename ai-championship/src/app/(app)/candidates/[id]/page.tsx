@@ -51,15 +51,19 @@ export default function CandidateDetailPage() {
     }, []);
 
     const organizationId = useMemo(() => {
-        if (isCandidateViewing) return 'org-demo-owner-id';
+        if (isCandidateViewing && user) return `personal-${user.uid}`;
         const orgId = localStorage.getItem('userOrgId');
-        return orgId;
+        return orgId || (user ? `personal-${user.uid}` : null);
     }, [user, isCandidateViewing]);
 
     const candidateRef = useMemoFirebase(() => {
-        if (!firestore || !organizationId || !id) return null;
+        if (!firestore || !id) return null;
+        if (isCandidateViewing && user) {
+            return doc(firestore, `users`, user.uid);
+        }
+        if (!organizationId) return null;
         return doc(firestore, `organizations/${organizationId}/candidates`, id);
-    }, [firestore, organizationId, id]);
+    }, [firestore, organizationId, id, isCandidateViewing, user]);
 
     const applicationsQuery = useMemoFirebase(() => {
         if (!firestore || !organizationId || !id) return null;

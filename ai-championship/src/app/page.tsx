@@ -90,7 +90,7 @@ export default function HomePage() {
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-4 animate-in fade-in slide-in-from-top-12 duration-1000 delay-400">
               <Button asChild size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg px-4 py-2 transition-all hover:scale-[1.02]">
-                <Link href="/jobs?role=Candidate">
+                <Link href="/login">
                     Find Your Next Role
                     <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>

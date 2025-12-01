@@ -1,19 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/page-header';
-import { Bot, Send, Mic, Volume2, User, Sparkles } from 'lucide-react';
+import { Bot, Send, Mic, Volume2, User, Sparkles, Upload, FileText } from 'lucide-react';
+import { useFirebase } from '@/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export default function AIAssistantPage() {
+  const { user, storage } = useFirebase() as any;
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Hello! I\'m your AI recruitment assistant powered by Raindrop SmartInference and ElevenLabs voice. How can I help you today?' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -55,6 +61,29 @@ export default function AIAssistantPage() {
     }
   };
 
+  const handleVoiceInput = () => {
+    setIsListening(true);
+    if ('webkitSpeechRecognition' in window) {
+      const recognition = new (window as any).webkitSpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(transcript);
+        setIsListening(false);
+      };
+      
+      recognition.onerror = () => setIsListening(false);
+      recognition.onend = () => setIsListening(false);
+      
+      recognition.start();
+    } else {
+      setIsListening(false);
+      alert('Voice input not supported in your browser');
+    }
+  };
+
   const speakMessage = async (text: string) => {
     try {
       const response = await fetch('/api/elevenlabs/text-to-speech', {
@@ -65,12 +94,43 @@ export default function AIAssistantPage() {
 
       if (response.ok) {
         const audioBlob = await response.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
-        audio.play();
+        if (audioBlob.size > 0) {
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          audio.play();
+        }
       }
     } catch (error) {
       console.error('Voice synthesis error:', error);
+    }
+  };
+
+  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user || !storage) return;
+
+    setResumeFile(file);
+    setIsLoading(true);
+
+    try {
+      const resumeRef = ref(storage, `resumes/${user.uid}/${file.name}`);
+      await uploadBytes(resumeRef, file);
+      const url = await getDownloadURL(resumeRef);
+
+      const assistantMessage = {
+        role: 'assistant',
+        content: `I've received your resume "${file.name}". I can help you analyze it, optimize it for ATS systems, or match it with relevant job openings. What would you like me to do?`
+      };
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('Resume upload error:', error);
+      const errorMessage = {
+        role: 'assistant',
+        content: 'Sorry, I had trouble uploading your resume. Please try again.'
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -137,23 +197,52 @@ export default function AIAssistantPage() {
                 )}
               </div>
               
-              <div className="flex gap-2">
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask about candidates, jobs, or recruitment strategies..."
-                  onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                  disabled={isLoading}
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                >
-                  <Mic className="h-4 w-4" />
-                </Button>
-                <Button onClick={handleSend} disabled={isLoading || !input.trim()}>
-                  <Send className="h-4 w-4" />
-                </Button>
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Ask about candidates, jobs, or recruitment strategies..."
+                    onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                    disabled={isLoading}
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleVoiceInput}
+                    disabled={isListening || isLoading}
+                  >
+                    {isListening ? <Mic className="h-4 w-4 animate-pulse" /> : <Mic className="h-4 w-4" />}
+                  </Button>
+                  <Button onClick={handleSend} disabled={isLoading || !input.trim()}>
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    className="hidden"
+                    onChange={handleResumeUpload}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isLoading}
+                    className="flex-1"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload Resume
+                  </Button>
+                  {resumeFile && (
+                    <Badge variant="secondary" className="flex items-center gap-1">
+                      <FileText className="h-3 w-3" />
+                      {resumeFile.name}
+                    </Badge>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>

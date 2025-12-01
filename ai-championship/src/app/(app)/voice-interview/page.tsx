@@ -79,16 +79,33 @@ export default function VoiceInterviewPage() {
           const audioUrl = URL.createObjectURL(audioBlob);
           const audio = new Audio(audioUrl);
           audio.onended = () => setIsSpeaking(false);
-          audio.onerror = () => setIsSpeaking(false);
+          audio.onerror = () => {
+            // Fallback to browser speech synthesis
+            useBrowserSpeech(text);
+          };
           await audio.play();
         } else {
-          setIsSpeaking(false);
+          // Use browser speech synthesis as fallback
+          useBrowserSpeech(text);
         }
       } else {
-        setIsSpeaking(false);
+        useBrowserSpeech(text);
       }
     } catch (error) {
       console.error('Voice error:', error);
+      useBrowserSpeech(text);
+    }
+  };
+
+  const useBrowserSpeech = (text: string) => {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.9;
+      utterance.pitch = voiceGender === 'male' ? 0.8 : 1.0;
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+      window.speechSynthesis.speak(utterance);
+    } else {
       setIsSpeaking(false);
     }
   };

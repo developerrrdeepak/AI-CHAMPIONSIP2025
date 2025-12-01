@@ -5,10 +5,15 @@ export async function POST(request: NextRequest) {
     const { text, voiceId } = await request.json();
 
     const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-    const VOICE_ID = voiceId || process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID || 'EXAVITQu4vr4xnSDxMaL';
+    const VOICE_ID = voiceId || 'EXAVITQu4vr4xnSDxMaL';
 
     if (!ELEVENLABS_API_KEY) {
-      // Return mock audio for development
+      // Use browser's built-in speech synthesis as fallback
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.9;
+      utterance.pitch = voiceId === '21m00Tcm4TlvDq8ikWAM' ? 0.8 : 1.0;
+      
+      // Return empty audio (browser will handle speech)
       return new NextResponse(new Blob(), {
         headers: { 'Content-Type': 'audio/mpeg' }
       });
