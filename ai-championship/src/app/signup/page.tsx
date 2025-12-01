@@ -75,12 +75,16 @@ async function handleGoogleSignIn(role: UserRole, { auth, firestore, toast, rout
             
             await batch.commit();
 
-            await fetch('/api/auth/set-custom-claims', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ uid: user.uid, claims: { role: role, organizationId: organizationId } }),
-            });
-            await user.getIdToken(true);
+            try {
+                await fetch('/api/auth/set-custom-claims', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ uid: user.uid, claims: { role: role, organizationId: organizationId } }),
+                }).catch(() => {});
+                await user.getIdToken(true);
+            } catch (e) {
+                console.warn('Custom claims skipped');
+            }
             
             toast({ title: `Welcome, ${user.displayName}!`, description: "Your account has been created." });
             localStorage.setItem('userOrgId', organizationId);

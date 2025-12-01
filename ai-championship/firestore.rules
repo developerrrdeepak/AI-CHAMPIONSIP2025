@@ -129,7 +129,8 @@ service cloud.firestore {
      * @principle Promotes collaboration by allowing any team member within an organization to manage candidates.
      */
     match /organizations/{organizationId}/candidates/{candidateId} {
-      allow get, list, create, update, delete: if isMemberOfOrg(organizationId);
+      allow get, list: if isSignedIn(); // Allow any authenticated user to read
+      allow create, update, delete: if isMemberOfOrg(organizationId);
     }
 
     /**
