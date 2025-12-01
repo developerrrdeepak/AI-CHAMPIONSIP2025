@@ -197,9 +197,16 @@ export default function JobDetailPage() {
     <div className={`transform transition-all duration-300 ease-out ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'}`}>
       <PageHeader title={job.title} description={`${job.department} · ${job.isRemote ? 'Remote' : `${job.locationCity}, ${job.locationCountry}`}`}>
         {isCandidate ? (
-            <Button asChild size="lg">
-              <Link href={`/applications/new?jobId=${id}`}>Apply Now</Link>
-            </Button>
+            <div className="flex gap-2">
+              <Button asChild size="lg">
+                <Link href={`/applications/new?jobId=${id}`}>Easy Apply</Link>
+              </Button>
+              {job.externalApplyUrl && (
+                <Button asChild size="lg" variant="outline">
+                  <a href={job.externalApplyUrl} target="_blank" rel="noopener noreferrer">Apply on Company Site</a>
+                </Button>
+              )}
+            </div>
         ) : (
             <div className="flex gap-2">
                 <Button variant="outline" asChild>

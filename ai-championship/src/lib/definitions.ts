@@ -60,6 +60,7 @@ export type Job = {
   salaryCurrency?: string;
   status: JobStatus;
   visibility?: 'public' | 'internal' | 'link-only' | 'closed';
+  externalApplyUrl?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -85,9 +86,11 @@ export type Candidate = {
   experienceLevel?: 'Student' | 'Fresher' | '0-2 years' | '3-5 years' | '5+ years';
   preferredLocation?: 'Remote' | 'Hybrid' | 'Onsite';
   expectedSalary?: number;
+  yearsOfExperience?: number;
+  isShortlisted?: boolean;
   createdAt: string;
   updatedAt: string;
-};
+}
 
 export type Experience = {
     title: string;
