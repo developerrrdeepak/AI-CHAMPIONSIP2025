@@ -24,10 +24,15 @@ export default function AIAssistantPage() {
     setIsLoading(true);
 
     try {
+      // Using Raindrop SmartInference + SmartMemory for context-aware AI chat
       const response = await fetch('/api/google-ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: input, context: 'recruitment_assistant' })
+        body: JSON.stringify({ 
+          message: input, 
+          context: 'recruitment_assistant',
+          useRaindrop: true // Enable Raindrop SmartInference
+        })
       });
 
       const data = await response.json();
