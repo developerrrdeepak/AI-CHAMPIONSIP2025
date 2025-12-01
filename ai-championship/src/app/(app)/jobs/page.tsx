@@ -86,7 +86,7 @@ function JobCard({ job, delay }: { job: Job, delay: number }) {
         style={{ animationDelay: `${delay}ms`}}
     >
       <CardHeader className="p-5">
-        <CardTitle className="text-lg font-semibold hover:text-primary cursor-pointer" onClick={() => router.push(`/jobs/${job.id}?role=${role}`)}>{job.title}</CardTitle>
+        <CardTitle className="text-lg font-semibold hover:text-primary cursor-pointer" onClick={() => router.push(`/jobs/${job.id}?role=${role}&orgId=${job.organizationId}`)}>{job.title}</CardTitle>
         <CardDescription className="text-sm">{job.department}</CardDescription>
       </CardHeader>
       <CardContent className="flex-grow space-y-2 text-sm p-5 pt-0">
@@ -105,7 +105,7 @@ function JobCard({ job, delay }: { job: Job, delay: number }) {
       </CardContent>
       <CardFooter className="p-5 pt-0">
         <Button className="w-full" asChild>
-            <Link href={`/jobs/${job.id}?role=${role}`}>View Details</Link>
+            <Link href={`/jobs/${job.id}?role=${role}&orgId=${job.organizationId}`}>View Details</Link>
         </Button>
       </CardFooter>
     </Card>
@@ -227,7 +227,7 @@ export default function JobsPage() {
 
 
     const handleRowClick = (row: Job) => {
-        router.push(`/jobs/${row.id}?role=${role || ''}`);
+        router.push(`/jobs/${row.id}?role=${role || ''}&orgId=${row.organizationId}`);
     };
     
     const pageTitle = isCandidate ? "Find Your Next Opportunity" : "Jobs";

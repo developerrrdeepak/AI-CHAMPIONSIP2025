@@ -29,15 +29,13 @@ export default function NewApplicationPage() {
 
     const loadJob = async () => {
       try {
-        // Try to find the job in organizations
-        const orgsSnapshot = await getDoc(doc(firestore, 'organizations', 'temp'));
-        // For now, use a default org ID - in production, you'd search all orgs
-        const defaultOrgId = localStorage.getItem('lastViewedOrgId') || 'default-org';
-        setOrganizationId(defaultOrgId);
-
-        const jobDoc = await getDoc(doc(firestore, `organizations/${defaultOrgId}/jobs`, jobId));
-        if (jobDoc.exists()) {
-          setJobTitle(jobDoc.data().title);
+        const orgId = searchParams.get('orgId');
+        if (orgId) {
+          setOrganizationId(orgId);
+          const jobDoc = await getDoc(doc(firestore, `organizations/${orgId}/jobs`, jobId));
+          if (jobDoc.exists()) {
+            setJobTitle(jobDoc.data().title);
+          }
         }
       } catch (error) {
         console.error('Error loading job:', error);
@@ -45,7 +43,7 @@ export default function NewApplicationPage() {
     };
 
     loadJob();
-  }, [firestore, jobId]);
+  }, [firestore, jobId, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

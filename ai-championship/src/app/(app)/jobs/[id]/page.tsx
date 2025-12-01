@@ -199,7 +199,7 @@ export default function JobDetailPage() {
         {isCandidate ? (
             <div className="flex gap-2">
               <Button asChild size="lg">
-                <Link href={`/applications/new?jobId=${id}`}>Easy Apply</Link>
+                <Link href={`/applications/new?jobId=${id}&orgId=${job.organizationId}`}>Easy Apply</Link>
               </Button>
               {job.externalApplyUrl && (
                 <Button asChild size="lg" variant="outline">
