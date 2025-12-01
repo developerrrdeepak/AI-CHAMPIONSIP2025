@@ -3,17 +3,18 @@
 
 import { PageHeader } from '@/components/page-header';
 import { DataTable } from '@/components/data-table';
-import type { Application, Candidate, Job } from '@/lib/definitions';
+import type { Application, Candidate, Job, ApplicationStage, ApplicationStatus } from '@/lib/definitions';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, doc, updateDoc, addDoc } from 'firebase/firestore';
 import { useMemo } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { placeholderImages } from '@/lib/placeholder-images';
 import { useUserContext } from '../layout';
+import { useToast } from '@/hooks/use-toast';
 
 type ApplicationWithDetails = Application & {
   candidateName?: string;
@@ -66,7 +67,83 @@ const columns: {
     enableSorting: true,
     cell: ({ row }) => <span>{new Date(row.original.updatedAt).toLocaleDateString()}</span>,
   },
+  {
+    accessorKey: 'id',
+    header: 'Actions',
+    cell: ({ row }) => <ApplicationActions application={row.original} />,
+  },
 ];
+
+function ApplicationActions({ application }: { application: ApplicationWithDetails }) {
+  const { firestore } = useFirebase();
+  const { organizationId } = useUserContext();
+  const { toast } = useToast();
+  const router = useRouter();
+
+  const updateStatus = async (stage: ApplicationStage, status: ApplicationStatus) => {
+    if (!firestore || !organizationId) return;
+    try {
+      const appRef = doc(firestore, `organizations/${organizationId}/applications`, application.id);
+      await updateDoc(appRef, { stage, status, updatedAt: new Date().toISOString() });
+      
+      // Create notification for candidate
+      const notifRef = collection(firestore, `users/${application.candidateId}/notifications`);
+      await addDoc(notifRef, {
+        title: `Application ${stage}`,
+        message: `Your application for ${application.jobTitle} has been moved to ${stage}`,
+        link: `/jobs/${application.jobId}`,
+        isRead: false,
+        type: 'info',
+        createdAt: new Date().toISOString()
+      });
+
+      toast({ title: 'Status Updated', description: `Application moved to ${stage}` });
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to update status' });
+    }
+  };
+
+  const scheduleInterview = () => {
+    router.push(`/interviews/new?applicationId=${application.id}`);
+  };
+
+  if (application.stage === 'Applied') {
+    return (
+      <div className="flex gap-2">
+        <Button size="sm" variant="default" onClick={() => updateStatus('Screening', 'shortlisted')}>Accept</Button>
+        <Button size="sm" variant="destructive" onClick={() => updateStatus('Rejected', 'rejected')}>Reject</Button>
+      </div>
+    );
+  }
+
+  if (application.stage === 'Screening') {
+    return (
+      <div className="flex gap-2">
+        <Button size="sm" onClick={scheduleInterview}>Schedule Interview</Button>
+        <Button size="sm" variant="outline" onClick={() => updateStatus('Rejected', 'rejected')}>Reject</Button>
+      </div>
+    );
+  }
+
+  if (application.stage === 'Technical Interview' || application.stage === 'HR Interview') {
+    return (
+      <div className="flex gap-2">
+        <Button size="sm" onClick={() => updateStatus('Offer', 'offer')}>Send Offer</Button>
+        <Button size="sm" variant="outline" onClick={() => updateStatus('Rejected', 'rejected')}>Reject</Button>
+      </div>
+    );
+  }
+
+  if (application.stage === 'Offer') {
+    return (
+      <div className="flex gap-2">
+        <Button size="sm" onClick={() => updateStatus('Hired', 'hired')}>Mark Hired</Button>
+      </div>
+    );
+  }
+
+  return <Badge variant="secondary">{application.stage}</Badge>;
+}
 
 export default function ApplicationsPage() {
     const router = useRouter();

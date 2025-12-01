@@ -31,25 +31,48 @@ export default function InterviewPrepPage() {
 
     try {
       // Generate questions based on type
-      const generatedQuestions = questionType === 'technical' ? [
+      const technicalQuestions = [
         'Explain the difference between var, let, and const in JavaScript',
         'How does React\'s virtual DOM work?',
         'What are the key principles of RESTful API design?',
         'Describe your experience with TypeScript and its benefits',
-        'How do you handle state management in large React applications?'
-      ] : questionType === 'behavioral' ? [
+        'How do you handle state management in large React applications?',
+        'What is the difference between SQL and NoSQL databases?',
+        'Explain the concept of closures in JavaScript',
+        'How would you optimize a slow-loading web application?',
+        'What are microservices and their advantages?',
+        'Describe your experience with CI/CD pipelines'
+      ];
+
+      const behavioralQuestions = [
         'Tell me about a time you faced a difficult challenge at work',
         'Describe a situation where you had to work with a difficult team member',
         'How do you prioritize tasks when you have multiple deadlines?',
         'Give an example of when you showed leadership',
-        'Tell me about a time you failed and what you learned'
-      ] : [
+        'Tell me about a time you failed and what you learned',
+        'Describe a situation where you had to learn something new quickly',
+        'How do you handle constructive criticism?',
+        'Tell me about a time you went above and beyond',
+        'Describe a conflict you had with a colleague and how you resolved it',
+        'How do you handle stress and pressure?'
+      ];
+
+      const mixedQuestions = [
         'Tell me about yourself and your background',
         'What interests you most about this role?',
         'Describe a challenging technical problem you solved',
         'How do you stay updated with new technologies?',
-        'Where do you see yourself in 5 years?'
+        'Where do you see yourself in 5 years?',
+        'What is your greatest strength as a developer?',
+        'How do you approach debugging complex issues?',
+        'Tell me about a project you\'re most proud of',
+        'How do you ensure code quality in your projects?',
+        'What motivates you in your career?'
       ];
+
+      const generatedQuestions = questionType === 'technical' ? technicalQuestions : 
+                                 questionType === 'behavioral' ? behavioralQuestions : 
+                                 mixedQuestions;
 
       const questionList = generatedQuestions.map(q => ({ text: q }));
       setQuestions(questionList);
@@ -71,10 +94,10 @@ export default function InterviewPrepPage() {
 
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">AI Interview Preparation</h1>
-        <p className="text-gray-600">
-          Get personalized interview questions with voice guidance powered by ElevenLabs
+      <div className="mb-8 text-center">
+        <h1 className="text-4xl font-bold mb-3 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">AI Interview Preparation</h1>
+        <p className="text-muted-foreground text-lg">
+          Get personalized interview questions tailored to your role
         </p>
       </div>
 
@@ -109,18 +132,20 @@ export default function InterviewPrepPage() {
 
             <div>
               <label className="block text-sm font-medium mb-2">Question Type</label>
-              <div className="flex gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 {(['technical', 'behavioral', 'mixed'] as const).map(type => (
-                  <label key={type} className="flex items-center">
-                    <input
-                      type="radio"
-                      value={type}
-                      checked={questionType === type}
-                      onChange={e => setQuestionType(e.target.value as typeof type)}
-                      className="mr-2"
-                    />
-                    <span className="capitalize">{type}</span>
-                  </label>
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setQuestionType(type)}
+                    className={`px-4 py-3 rounded-lg border-2 transition-all ${
+                      questionType === type 
+                        ? 'border-primary bg-primary text-primary-foreground shadow-lg' 
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <span className="capitalize font-semibold">{type}</span>
+                  </button>
                 ))}
               </div>
             </div>
@@ -151,13 +176,21 @@ export default function InterviewPrepPage() {
 
       {questions.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold mb-4">Interview Questions</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">Interview Questions ({questions.length})</h2>
+            <Button variant="outline" onClick={() => setQuestions([])}>
+              Clear All
+            </Button>
+          </div>
           {questions.map((question, index) => (
-            <Card key={index}>
+            <Card key={index} className="hover:shadow-lg transition-shadow border-l-4 border-l-primary">
               <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-primary font-bold">{index + 1}</span>
+                  </div>
                   <div className="flex-1">
-                    <p className="text-lg font-medium mb-2">{index + 1}. {question.text}</p>
+                    <p className="text-lg font-medium leading-relaxed">{question.text}</p>
                   </div>
                   {question.audio && (
                     <Button
@@ -165,7 +198,7 @@ export default function InterviewPrepPage() {
                       variant="outline"
                       onClick={() => playAudio(question.audio!, index)}
                       disabled={playingIndex === index}
-                      className="ml-4 flex-shrink-0"
+                      className="flex-shrink-0"
                     >
                       {playingIndex === index ? (
                         <>
