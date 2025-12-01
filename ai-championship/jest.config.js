@@ -14,7 +14,7 @@ const customJestConfig = {
     '<rootDir>/test/**/*.{js,jsx,ts,tsx}',
     '<rootDir>/**/*.test.{js,jsx,ts,tsx}'
   ],
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   testTimeout: 30000, // 30 seconds for Firebase operations
