@@ -14,11 +14,12 @@ import { z } from "zod";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useFirebase, addDocumentNonBlocking } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { collection, doc, getDoc } from "firebase/firestore";
 import { Switch } from "@/components/ui/switch";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, X } from "lucide-react";
+import { Loader2, X, Building } from "lucide-react";
+import { useUserContext } from "../layout";
 
 const jobFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -89,6 +90,18 @@ export default function NewJobPage() {
     const router = useRouter();
     const { toast } = useToast();
     const { firestore, user } = useFirebase();
+    const { organizationId } = useUserContext();
+    const [organization, setOrganization] = useState<any>(null);
+
+    useEffect(() => {
+        if (!firestore || !organizationId) return;
+        const loadOrg = async () => {
+            const orgRef = doc(firestore, 'organizations', organizationId);
+            const orgSnap = await getDoc(orgRef);
+            if (orgSnap.exists()) setOrganization(orgSnap.data());
+        };
+        loadOrg();
+    }, [firestore, organizationId]);
 
     const form = useForm<z.infer<typeof jobFormSchema>>({
         resolver: zodResolver(jobFormSchema),
@@ -140,6 +153,39 @@ export default function NewJobPage() {
   return (
     <>
       <PageHeader title="Create New Job" description="Fill out the details for the new position." />
+      
+      {organization && (
+        <Card className="mb-6 border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building className="h-5 w-5" />
+              Company Information
+            </CardTitle>
+            <CardDescription>This job will be posted under your organization</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-semibold">Company Name:</span>
+                <p className="text-muted-foreground">{organization.name}</p>
+              </div>
+              {organization.websiteUrl && (
+                <div>
+                  <span className="font-semibold">Website:</span>
+                  <p className="text-muted-foreground">{organization.websiteUrl}</p>
+                </div>
+              )}
+              {organization.about && (
+                <div className="col-span-2">
+                  <span className="font-semibold">About:</span>
+                  <p className="text-muted-foreground">{organization.about}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           <Card>

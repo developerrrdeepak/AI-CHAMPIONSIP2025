@@ -22,6 +22,7 @@ export default function ProfileEditPage() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string>('');
+  const [profileScore, setProfileScore] = useState(0);
   const [formData, setFormData] = useState({
     displayName: '',
     email: '',
@@ -60,6 +61,7 @@ export default function ProfileEditPage() {
             portfolio: data.portfolio || '',
           });
           setPhotoPreview(data.photoURL || user.photoURL || '');
+          calculateProfileScore(data);
         } else {
           setFormData(prev => ({
             ...prev,
@@ -77,6 +79,20 @@ export default function ProfileEditPage() {
 
     loadProfile();
   }, [user, firestore]);
+
+  const calculateProfileScore = (data: any) => {
+    let score = 0;
+    if (data.displayName) score += 10;
+    if (data.email) score += 10;
+    if (data.phone) score += 10;
+    if (data.location) score += 10;
+    if (data.bio) score += 15;
+    if (data.skills?.length > 0) score += 15;
+    if (data.experience) score += 10;
+    if (data.currentRole) score += 10;
+    if (data.resumeURL) score += 20;
+    setProfileScore(score);
+  };
 
   useEffect(() => {
     if (photoFile) {
@@ -174,6 +190,23 @@ export default function ProfileEditPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 py-6">
+      {profileScore < 100 && (
+        <Card className="border-primary">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-semibold">Profile Completeness</span>
+              <span className="text-primary font-bold">{profileScore}%</span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div className="h-full bg-primary transition-all" style={{ width: `${profileScore}%` }} />
+            </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              Complete your profile to increase visibility to employers
+            </p>
+          </CardContent>
+        </Card>
+      )}
+      
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
