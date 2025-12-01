@@ -48,11 +48,18 @@ export default function VoiceInterviewPage() {
 
       if (response.ok) {
         const audioBlob = await response.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
-        
-        audio.onended = () => setIsPlaying(false);
-        await audio.play();
+        if (audioBlob.size > 0) {
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audio = new Audio(audioUrl);
+          
+          audio.onended = () => setIsPlaying(false);
+          audio.onerror = () => setIsPlaying(false);
+          await audio.play();
+        } else {
+          setIsPlaying(false);
+        }
+      } else {
+        setIsPlaying(false);
       }
     } catch (error) {
       console.error('Voice playback error:', error);
@@ -67,6 +74,8 @@ export default function VoiceInterviewPage() {
   };
 
   const handleAnalyzeAnswer = async () => {
+    if (!answers[currentQuestion]?.trim()) return;
+    
     setIsAnalyzing(true);
     try {
       const response = await fetch('/api/raindrop/candidate-match', {
@@ -74,14 +83,17 @@ export default function VoiceInterviewPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           question: questions[currentQuestion],
-          answer: answers[currentQuestion] || '',
+          answer: answers[currentQuestion],
           context: 'interview_analysis'
         })
       });
 
+      if (!response.ok) throw new Error('API error');
+      
       const data = await response.json();
-      setFeedback(data.success ? data.data : 'Great answer! Consider adding more specific examples to strengthen your response.');
+      setFeedback(data.data || 'Great answer! Consider adding more specific examples to strengthen your response.');
     } catch (error) {
+      console.error('Analysis error:', error);
       setFeedback('Your answer shows good understanding. Try to be more specific with examples and quantify your achievements when possible.');
     } finally {
       setIsAnalyzing(false);

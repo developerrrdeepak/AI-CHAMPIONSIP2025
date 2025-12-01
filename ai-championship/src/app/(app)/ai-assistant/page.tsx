@@ -20,29 +20,32 @@ export default function AIAssistantPage() {
     
     const userMessage = { role: 'user', content: input };
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
     setIsLoading(true);
 
     try {
-      // Using Raindrop SmartInference + SmartMemory for context-aware AI chat
       const response = await fetch('/api/google-ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          message: input, 
+          message: currentInput, 
           context: 'recruitment_assistant',
-          useRaindrop: true // Enable Raindrop SmartInference
+          useRaindrop: true
         })
       });
 
+      if (!response.ok) throw new Error('API error');
+      
       const data = await response.json();
       const assistantMessage = {
         role: 'assistant',
-        content: data.success ? data.response : 'I can help you with recruitment tasks, candidate matching, and job posting optimization.'
+        content: data.response || 'I can help you with recruitment tasks, candidate matching, and job posting optimization.'
       };
       
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
+      console.error('AI chat error:', error);
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: 'I\'m here to help with recruitment tasks. Try asking about candidate matching, job requirements, or interview preparation.'

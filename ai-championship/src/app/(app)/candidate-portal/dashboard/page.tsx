@@ -26,6 +26,7 @@ import { useMemo } from "react";
 import { useJobs } from '@/hooks/use-jobs';
 import { useChallenges } from '@/hooks/use-challenges';
 import { useCandidateProfile } from '@/hooks/use-candidate-profile';
+import { useCourses } from '@/hooks/use-courses';
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -421,8 +422,7 @@ function AvailableJobsList({ candidate }: { candidate: Candidate | null }) {
 }
 
 function AvailableCoursesList() {
-    const courses: any[] = [];
-    const isLoading = false;
+    const { courses, isLoading } = useCourses();
 
     if (isLoading) return <Skeleton className="h-32 w-full" />;
     if (!courses?.length) return (

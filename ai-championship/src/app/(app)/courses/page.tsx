@@ -1,196 +1,93 @@
 'use client';
 
-import { useState } from 'react';
-import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, collectionGroup, query, orderBy } from 'firebase/firestore';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/page-header';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { BookOpen, Plus, Clock, Users, Award } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { useUserRole } from '@/hooks/use-user-role';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { GraduationCap, Clock, Users, BookOpen } from 'lucide-react';
+import { useCourses } from '@/hooks/use-courses';
+import Link from 'next/link';
 
 export default function CoursesPage() {
-  const { user, firestore } = useFirebase();
-  const { role } = useUserRole();
-  const { toast } = useToast();
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    duration: '',
-    level: 'Beginner',
-    instructor: '',
-  });
+  const { courses, isLoading } = useCourses();
 
-  const coursesQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
-    return query(collectionGroup(firestore, 'courses'), orderBy('createdAt', 'desc'));
-  }, [firestore]);
-
-  const { data: courses, isLoading } = useCollection(coursesQuery);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !firestore) return;
-
-    setLoading(true);
-    try {
-      const orgId = `org-${user.uid}`;
-      await addDoc(collection(firestore, `organizations/${orgId}/courses`), {
-        ...formData,
-        employerId: user.uid,
-        employerName: user.displayName,
-        createdAt: new Date().toISOString(),
-        enrollments: 0,
-      });
-
-      toast({ title: 'Course Posted!', description: 'Your course is now visible to candidates.' });
-      setOpen(false);
-      setFormData({ title: '', description: '', duration: '', level: 'Beginner', instructor: '' });
-    } catch (error) {
-      toast({ title: 'Error', description: 'Failed to post course.', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Learning Courses</h1>
-          <p className="text-muted-foreground">Upskill with employer-provided training</p>
-        </div>
-        {role === 'Owner' && (
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Post Course
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Course</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label>Course Title</Label>
-                  <Input
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label>Description</Label>
-                  <Textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={3}
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Duration</Label>
-                    <Input
-                      value={formData.duration}
-                      onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                      placeholder="e.g., 4 weeks"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label>Level</Label>
-                    <select
-                      className="w-full px-3 py-2 border rounded-md"
-                      value={formData.level}
-                      onChange={(e) => setFormData({ ...formData, level: e.target.value })}
-                    >
-                      <option>Beginner</option>
-                      <option>Intermediate</option>
-                      <option>Advanced</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <Label>Instructor</Label>
-                  <Input
-                    value={formData.instructor}
-                    onChange={(e) => setFormData({ ...formData, instructor: e.target.value })}
-                    required
-                  />
-                </div>
-                <Button type="submit" disabled={loading} className="w-full">
-                  {loading ? 'Posting...' : 'Post Course'}
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
-
-      {isLoading ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+  if (isLoading) {
+    return (
+      <div className="space-y-6 py-6">
+        <PageHeader title="Learning Courses" description="Upskill with employer-provided training" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
             <Skeleton key={i} className="h-64" />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 py-6">
+      <PageHeader
+        title="Learning Courses"
+        description="Upskill with employer-provided training courses"
+      />
+
+      {courses.length === 0 ? (
+        <Card className="text-center py-12">
+          <CardContent>
+            <GraduationCap className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+            <h3 className="text-xl font-semibold mb-2">No Courses Available</h3>
+            <p className="text-muted-foreground">
+              Check back later for new learning opportunities from employers
+            </p>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {courses?.map((course: any) => (
-            <Card key={course.id} className="hover:shadow-lg transition-shadow">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {courses.map((course) => (
+            <Card key={course.id} className="flex flex-col hover:shadow-lg transition-shadow">
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <BookOpen className="h-8 w-8 text-primary" />
-                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                    {course.level}
-                  </span>
+                <div className="flex items-start justify-between mb-2">
+                  <Badge variant="secondary">{course.level || 'Intermediate'}</Badge>
+                  <Badge variant="outline">{course.category || 'Technical'}</Badge>
                 </div>
-                <CardTitle className="mt-4">{course.title}</CardTitle>
+                <CardTitle className="line-clamp-2">{course.title}</CardTitle>
+                <CardDescription className="line-clamp-2">
+                  {course.description || 'Learn new skills to advance your career'}
+                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">{course.description}</p>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>{course.duration}</span>
+              <CardContent className="flex-1">
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span>{course.duration || '4 weeks'}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Award className="h-4 w-4 text-muted-foreground" />
-                    <span>{course.instructor}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Users className="h-4 w-4" />
                     <span>{course.enrollments || 0} enrolled</span>
                   </div>
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <BookOpen className="h-4 w-4" />
+                    <span>{course.lessons || 12} lessons</span>
+                  </div>
+                  {course.instructor && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <GraduationCap className="h-4 w-4" />
+                      <span>By {course.instructor}</span>
+                    </div>
+                  )}
                 </div>
-                <Button className="w-full mt-4" variant="outline">
-                  Enroll Now
-                </Button>
               </CardContent>
+              <CardFooter>
+                <Button className="w-full" asChild>
+                  <Link href={`/courses/${course.id}`}>
+                    Enroll Now
+                  </Link>
+                </Button>
+              </CardFooter>
             </Card>
           ))}
         </div>
-      )}
-
-      {!isLoading && !courses?.length && (
-        <Card className="p-12 text-center">
-          <BookOpen className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-          <h3 className="text-xl font-semibold mb-2">No Courses Yet</h3>
-          <p className="text-muted-foreground">
-            {role === 'Owner'
-              ? 'Be the first to post a course for candidates!'
-              : 'Check back soon for new learning opportunities.'}
-          </p>
-        </Card>
       )}
     </div>
   );
