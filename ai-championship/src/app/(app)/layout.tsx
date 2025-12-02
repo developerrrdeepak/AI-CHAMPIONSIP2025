@@ -76,12 +76,15 @@ function UserProvider({ children, roleFromQuery }: { children: React.ReactNode, 
         } else {
            // This user is likely a candidate who doesn't have a user doc.
            // They might have just signed up via a public job posting.
+           const displayName = authUser.displayName || authUser.email?.split('@')[0] || 'User';
+           const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=4F46E5&color=fff&size=128`;
            setRole('Candidate');
            setOrganizationId('org-demo-owner-id');
            setUser({
               id: authUser.uid,
-              displayName: authUser.displayName || 'Candidate',
+              displayName,
               email: authUser.email || '',
+              avatarUrl,
               role: 'Candidate',
               organizationId: 'org-demo-owner-id',
            } as User);

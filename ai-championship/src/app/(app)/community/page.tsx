@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Heart, MessageCircle, Share2, Briefcase, Award, FileText, Lightbulb } from 'lucide-react';
+import { Plus, Heart, MessageCircle, Share2, Briefcase, Award, FileText, Lightbulb, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUserContext } from '../layout';
 import type { Post, PostType } from '@/lib/definitions';

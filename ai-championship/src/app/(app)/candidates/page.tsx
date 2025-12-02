@@ -15,6 +15,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { placeholderImages } from '@/lib/placeholder-images';
 import { Badge } from '@/components/ui/badge';
 import { useUserContext } from '../layout';
+import { MOCK_CANDIDATES } from '@/lib/mock-data';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -114,9 +115,18 @@ export default function CandidatesPage() {
 
     const { data: allUsers, isLoading: isLoadingCandidates } = useCollection<any>(candidatesQuery);
     
-    // Filter to only show public profiles
+    // Filter to only show public profiles, fallback to mock data
     const candidates = useMemo(() => {
-        if (!allUsers) return [];
+        if (!allUsers || allUsers.length === 0) {
+            // Use mock data if no real data
+            return MOCK_CANDIDATES.map(c => ({
+                ...c,
+                displayName: c.name,
+                profileVisibility: 'public',
+                updatedAt: new Date().toISOString(),
+                createdAt: new Date().toISOString(),
+            }));
+        }
         return allUsers.filter(user => user.profileVisibility === 'public' || !user.profileVisibility);
     }, [allUsers]);
 

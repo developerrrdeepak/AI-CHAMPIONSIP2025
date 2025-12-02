@@ -52,13 +52,15 @@ export function UserNav() {
   };
 
   const userInitial = user.displayName ? user.displayName.charAt(0).toUpperCase() : (user.email ? user.email.charAt(0).toUpperCase() : 'U');
+  const displayName = user.displayName || user.email?.split('@')[0] || 'User';
+  const avatarUrl = user.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=4F46E5&color=fff&size=128`;
 
   return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                     <Avatar className="h-10 w-10">
-                        <AvatarImage src={user.avatarUrl || placeholderImages.find(p => p.id === 'avatar-1')?.imageUrl} alt={user.displayName || 'User'} data-ai-hint="person face" />
+                        <AvatarImage src={avatarUrl} alt={displayName} />
                         <AvatarFallback>{userInitial}</AvatarFallback>
                     </Avatar>
                 </Button>
