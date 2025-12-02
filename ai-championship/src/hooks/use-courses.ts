@@ -72,9 +72,6 @@ export function useCourses() {
 
     return () => unsubscribes.forEach(unsub => unsub());
   }, [firestore]);
-
-  // Fallback to mock data if no courses
-  const finalCourses = courses.length > 0 ? courses : (await import('@/lib/mock-data')).mockCourses;
   
-  return { courses: finalCourses, isLoading, error };
+  return { courses, isLoading, error };
 }
