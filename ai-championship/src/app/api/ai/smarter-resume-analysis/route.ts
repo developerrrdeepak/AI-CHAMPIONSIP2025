@@ -6,15 +6,24 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { resumePath } = body;
 
-    if (!resumePath) {
+    if (!resumePath || typeof resumePath !== 'string') {
       return NextResponse.json(
         { error: 'Missing required field: resumePath' },
         { status: 400 }
       );
     }
 
+    const sanitizedPath = resumePath.replace(/[^a-zA-Z0-9._/-]/g, '');
+    
+    if (!sanitizedPath || sanitizedPath.includes('..')) {
+      return NextResponse.json(
+        { error: 'Invalid resumePath format' },
+        { status: 400 }
+      );
+    }
+
     const analysisResult = await smarterResumeAnalysisFlow.run({
-      input: { resumePath },
+      input: { resumePath: sanitizedPath },
     });
 
     return NextResponse.json({

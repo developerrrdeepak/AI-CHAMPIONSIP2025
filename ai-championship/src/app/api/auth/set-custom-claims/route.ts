@@ -13,9 +13,16 @@ try {
       projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
     });
     adminInitialized = true;
+  } else if (getApps().length) {
+    adminInitialized = true;
   }
-} catch (error) {
-  console.warn('Firebase Admin not initialized:', error);
+} catch (error: any) {
+  console.error('Firebase Admin initialization failed:', {
+    message: error?.message || 'Unknown error',
+    code: error?.code,
+    timestamp: new Date().toISOString(),
+  });
+  adminInitialized = false;
 }
 
 // Input validation schema
@@ -32,19 +39,22 @@ const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
-  const windowMs = 15 * 60 * 1000; // 15 minutes
+  const windowMs = 15 * 60 * 1000;
   const maxRequests = 10;
 
   const current = rateLimitMap.get(ip);
   
   if (!current || now > current.resetTime) {
+    if (rateLimitMap.size > 1000) {
+      for (const [key, value] of rateLimitMap.entries()) {
+        if (now > value.resetTime) rateLimitMap.delete(key);
+      }
+    }
     rateLimitMap.set(ip, { count: 1, resetTime: now + windowMs });
     return true;
   }
 
-  if (current.count >= maxRequests) {
-    return false;
-  }
+  if (current.count >= maxRequests) return false;
 
   current.count++;
   return true;
@@ -126,28 +136,50 @@ export async function POST(request: NextRequest) {
     // Verify user exists before setting claims
     try {
       await auth.getUser(uid);
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      console.error('User verification error:', {
+        message: errorMessage,
+        stack: errorStack,
+        timestamp: new Date().toISOString(),
+      });
       return NextResponse.json(
-        { error: 'User not found' },
+        { error: 'User not found', details: errorMessage },
         { status: 404 }
       );
     }
 
-    await auth.setCustomUserClaims(uid, sanitizedClaims);
+    try {
+      await auth.setCustomUserClaims(uid, sanitizedClaims);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Failed to set custom claims:', {
+        message: errorMessage,
+        timestamp: new Date().toISOString(),
+      });
+      return NextResponse.json(
+        { error: 'Failed to set custom claims', details: errorMessage },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(
       { success: true, message: 'Custom claims set successfully' },
       { status: 200 }
     );
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
     console.error('Error setting custom claims:', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
+      message: errorMessage,
+      stack: errorStack,
       timestamp: new Date().toISOString(),
     });
 
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: errorMessage },
       { status: 500 }
     );
   }
@@ -155,13 +187,19 @@ export async function POST(request: NextRequest) {
 
 // Handle OPTIONS for CORS
 export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_APP_URL || '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Max-Age': '86400',
-    },
-  });
+  try {
+    return new NextResponse(null, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': process.env.NEXT_PUBLIC_APP_URL || '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400',
+      },
+    });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('OPTIONS request error:', errorMessage);
+    return new NextResponse(null, { status: 500 });
+  }
 }

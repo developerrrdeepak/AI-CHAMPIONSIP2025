@@ -3,7 +3,15 @@ import { generateCandidateInsights } from '@/lib/gemini-ai';
 
 export async function POST(request: NextRequest) {
   try {
-    const { candidate } = await request.json();
+    const body = await request.json();
+    const { candidate } = body;
+
+    if (!candidate) {
+      return NextResponse.json(
+        { success: false, error: 'Candidate data is required' },
+        { status: 400 }
+      );
+    }
 
     const insights = await generateCandidateInsights(candidate);
 
@@ -14,7 +22,15 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, insights, source: 'ai' });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to generate insights' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Candidate insights error:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to generate insights',
+        details: error?.message || 'Unknown error'
+      },
+      { status: 500 }
+    );
   }
 }

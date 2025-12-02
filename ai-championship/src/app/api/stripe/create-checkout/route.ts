@@ -1,13 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-12-18.acacia'
-});
+let stripe: Stripe | null = null;
+try {
+  if (process.env.STRIPE_SECRET_KEY) {
+    stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2024-12-18.acacia'
+    });
+  }
+} catch (error: any) {
+  console.error('Stripe initialization failed:', error?.message || error);
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const { priceId, userId } = await request.json();
+    if (!stripe) {
+      return NextResponse.json(
+        { error: 'Stripe not configured' },
+        { status: 503 }
+      );
+    }
+
+    const body = await request.json();
+    const { priceId, userId } = body;
+
+    if (!priceId || !userId) {
+      return NextResponse.json(
+        { error: 'priceId and userId are required' },
+        { status: 400 }
+      );
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -21,6 +43,15 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ sessionId: session.id, url: session.url });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Stripe checkout error:', {
+      message: error?.message || 'Unknown error',
+      type: error?.type,
+      code: error?.code,
+      timestamp: new Date().toISOString(),
+    });
+    return NextResponse.json(
+      { error: 'Failed to create checkout session', details: error?.message },
+      { status: 500 }
+    );
   }
 }

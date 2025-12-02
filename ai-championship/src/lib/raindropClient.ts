@@ -7,10 +7,30 @@ if (!apiKey) {
   console.warn('RAINDROP_API_KEY environment variable not set. Raindrop integration will not work.');
 }
 
-async function mcpFetch<T>(path: string, options: RequestInit & { json?: any } = {}): Promise<T> {
+async function mcpFetch<T>(path: string, options: RequestInit & { json?: unknown } = {}): Promise<T> {
+  if (!apiKey) {
+    throw new Error('RAINDROP_API_KEY is required but not configured');
+  }
+  
+  // Validate path to prevent SSRF
+  if (!path.startsWith('/')) {
+    throw new Error('Invalid path: must start with /');
+  }
+  
+  // Validate baseUrl is from allowed domain
+  const allowedDomain = 'api.liquidmetal.ai';
+  try {
+    const baseUrlObj = new URL(baseUrl);
+    if (!baseUrlObj.hostname.endsWith(allowedDomain)) {
+      throw new Error('Invalid base URL domain');
+    }
+  } catch (error) {
+    throw new Error('Invalid base URL format');
+  }
+  
   const url = `${baseUrl}${path}`;
   const headers: Record<string, string> = {
-    'Authorization': `Bearer ${apiKey ?? ''}`,
+    'Authorization': `Bearer ${apiKey}`,
     'Content-Type': 'application/json',
     ...(options.headers as Record<string, string> | undefined),
   };
@@ -33,95 +53,122 @@ async function mcpFetch<T>(path: string, options: RequestInit & { json?: any } =
   if (contentType.includes('application/json')) {
     return (await res.json()) as T;
   }
-  // @ts-ignore - caller should handle binary if needed
-  return (await res.arrayBuffer()) as T;
+  return (await res.arrayBuffer()) as unknown as T;
+}
+
+interface SmartSQLResponse {
+  rows?: unknown[];
+  [key: string]: unknown;
 }
 
 /**
  * Executes a SQL query using Raindrop's SmartSQL via MCP server.
  */
-export async function smartSQLQuery(queryString: string, params?: any[]) {
+export async function smartSQLQuery(queryString: string, params?: unknown[]): Promise<SmartSQLResponse> {
   try {
-    return await mcpFetch<any>(`/smartsql/query`, {
+    return await mcpFetch<SmartSQLResponse>(`/smartsql/query`, {
       method: 'POST',
       json: { query: queryString, params: params ?? [] },
     });
-  } catch (error) {
-    console.error('SmartSQL query error:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('SmartSQL query error:', {
+      message: errorMessage,
+      timestamp: new Date().toISOString(),
+    });
     throw error;
   }
 }
 
 /** Saves data to Raindrop's SmartMemory via MCP server. */
-export async function smartMemoryWrite(key: string, data: any, userId?: string) {
+export async function smartMemoryWrite(key: string, data: unknown, userId?: string): Promise<unknown> {
   try {
-    return await mcpFetch<any>(`/smartmemory/save`, {
+    return await mcpFetch<unknown>(`/smartmemory/save`, {
       method: 'POST',
       json: { key, userId, data },
     });
-  } catch (error) {
-    console.error('SmartMemory write error:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('SmartMemory write error:', {
+      message: errorMessage,
+      timestamp: new Date().toISOString(),
+    });
     throw error;
   }
 }
 
 /** Reads data from Raindrop's SmartMemory via MCP server. */
-export async function smartMemoryRead(key: string, userId?: string) {
+export async function smartMemoryRead(key: string, userId?: string): Promise<unknown> {
   try {
-    return await mcpFetch<any>(`/smartmemory/read`, {
+    return await mcpFetch<unknown>(`/smartmemory/read`, {
       method: 'POST',
       json: { key, userId },
     });
-  } catch (error) {
-    console.error('SmartMemory read error:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('SmartMemory read error:', {
+      message: errorMessage,
+      timestamp: new Date().toISOString(),
+    });
     throw error;
   }
 }
 
 /** Invokes an AI model using Raindrop's SmartInference via MCP server. */
-export async function smartInferenceInvoke(model: string, prompt: any) {
+export async function smartInferenceInvoke(model: string, prompt: string | unknown): Promise<unknown> {
   try {
     const messages = typeof prompt === 'string' ? [{ role: 'user', content: prompt }] : [{ role: 'user', content: JSON.stringify(prompt) }];
-    return await mcpFetch<any>(`/smartinference/chat`, {
+    return await mcpFetch<unknown>(`/smartinference/chat`, {
       method: 'POST',
       json: { model, messages },
     });
-  } catch (error) {
-    console.error('SmartInference invoke error:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('SmartInference invoke error:', {
+      message: errorMessage,
+      timestamp: new Date().toISOString(),
+    });
     throw error;
   }
 }
 
 /** Uploads an object to a Raindrop SmartBucket via MCP server. */
-export async function smartBucketsUpload(bucket: string, key: string, body: Buffer | string) {
+export async function smartBucketsUpload(bucket: string, key: string, body: Buffer | string): Promise<unknown> {
   try {
     let content: string;
     let isBase64 = false;
     if (typeof body === 'string') {
       content = body;
     } else {
-      // Node Buffer -> base64
       content = body.toString('base64');
       isBase64 = true;
     }
-    return await mcpFetch<any>(`/smartbuckets/putObject`, {
+    return await mcpFetch<unknown>(`/smartbuckets/putObject`, {
       method: 'POST',
       json: { bucket, key, content, isBase64 },
     });
-  } catch (error) {
-    console.error('SmartBuckets upload error:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('SmartBuckets upload error:', {
+      message: errorMessage,
+      timestamp: new Date().toISOString(),
+    });
     throw error;
   }
 }
 
 /** Downloads an object from a Raindrop SmartBucket via MCP server. */
-export async function smartBucketsDownload(bucket: string, key: string) {
+export async function smartBucketsDownload(bucket: string, key: string): Promise<unknown> {
   try {
-    return await mcpFetch<any>(`/smartbuckets/getObject?bucket=${encodeURIComponent(bucket)}&key=${encodeURIComponent(key)}`, {
+    return await mcpFetch<unknown>(`/smartbuckets/getObject?bucket=${encodeURIComponent(bucket)}&key=${encodeURIComponent(key)}`, {
       method: 'GET',
     });
-  } catch (error) {
-    console.error('SmartBuckets download error:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('SmartBuckets download error:', {
+      message: errorMessage,
+      timestamp: new Date().toISOString(),
+    });
     throw error;
   }
 }

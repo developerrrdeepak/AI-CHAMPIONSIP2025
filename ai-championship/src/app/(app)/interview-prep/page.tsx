@@ -30,52 +30,35 @@ export default function InterviewPrepPage() {
     setQuestions([])
 
     try {
-      // Generate questions based on type
-      const technicalQuestions = [
-        'Explain the difference between var, let, and const in JavaScript',
-        'How does React\'s virtual DOM work?',
-        'What are the key principles of RESTful API design?',
-        'Describe your experience with TypeScript and its benefits',
-        'How do you handle state management in large React applications?',
-        'What is the difference between SQL and NoSQL databases?',
-        'Explain the concept of closures in JavaScript',
-        'How would you optimize a slow-loading web application?',
-        'What are microservices and their advantages?',
-        'Describe your experience with CI/CD pipelines'
-      ];
+      // Generate AI-powered questions
+      const response = await fetch('/api/google-ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: `Generate 10 ${questionType} interview questions for this job:\n\nJob Description: ${jobDescription}\n\nCandidate Profile: ${candidateProfile}\n\nReturn ONLY the questions, one per line, numbered 1-10.`,
+          context: 'interview_assistant'
+        })
+      });
 
-      const behavioralQuestions = [
-        'Tell me about a time you faced a difficult challenge at work',
-        'Describe a situation where you had to work with a difficult team member',
-        'How do you prioritize tasks when you have multiple deadlines?',
-        'Give an example of when you showed leadership',
-        'Tell me about a time you failed and what you learned',
-        'Describe a situation where you had to learn something new quickly',
-        'How do you handle constructive criticism?',
-        'Tell me about a time you went above and beyond',
-        'Describe a conflict you had with a colleague and how you resolved it',
-        'How do you handle stress and pressure?'
-      ];
+      const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to generate questions');
+      }
 
-      const mixedQuestions = [
-        'Tell me about yourself and your background',
-        'What interests you most about this role?',
-        'Describe a challenging technical problem you solved',
-        'How do you stay updated with new technologies?',
-        'Where do you see yourself in 5 years?',
-        'What is your greatest strength as a developer?',
-        'How do you approach debugging complex issues?',
-        'Tell me about a project you\'re most proud of',
-        'How do you ensure code quality in your projects?',
-        'What motivates you in your career?'
-      ];
+      // Parse AI response into questions
+      const aiQuestions = data.response
+        .split('\n')
+        .filter((line: string) => line.trim() && /^\d+\./.test(line.trim()))
+        .map((line: string) => ({
+          text: line.replace(/^\d+\.\s*/, '').trim()
+        }));
 
-      const generatedQuestions = questionType === 'technical' ? technicalQuestions : 
-                                 questionType === 'behavioral' ? behavioralQuestions : 
-                                 mixedQuestions;
+      if (aiQuestions.length === 0) {
+        throw new Error('No questions generated. Please try again.');
+      }
 
-      const questionList = generatedQuestions.map(q => ({ text: q }));
-      setQuestions(questionList);
+      setQuestions(aiQuestions);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {

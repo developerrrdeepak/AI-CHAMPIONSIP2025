@@ -4,9 +4,9 @@ if (!process.env.ELEVENLABS_API_KEY) {
   console.warn('ELEVENLABS_API_KEY is not set - voice features will be disabled')
 }
 
-const client = new ElevenLabsClient({
-  apiKey: process.env.ELEVENLABS_API_KEY,
-})
+const client = process.env.ELEVENLABS_API_KEY
+  ? new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY })
+  : null as any
 
 export const DEFAULT_VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'pMsXgVXv3BLzUgSXRSLF'
 
@@ -46,9 +46,14 @@ export async function textToSpeech(
       chunks.push(Buffer.from(chunk))
     }
     return Buffer.concat(chunks)
-  } catch (error) {
-    console.error('ElevenLabs text-to-speech error:', error)
-    throw new Error('Failed to generate audio')
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('ElevenLabs text-to-speech error:', {
+      message: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    });
+    throw new Error(`Failed to generate audio: ${errorMessage}`);
   }
 }
 
@@ -65,8 +70,12 @@ export async function getAvailableVoices() {
       category: voice.category,
       description: voice.description || '',
     }))
-  } catch (error) {
-    console.error('Failed to fetch voices:', error)
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Failed to fetch voices:', {
+      message: errorMessage,
+      timestamp: new Date().toISOString(),
+    });
     return []
   }
 }
@@ -120,7 +129,13 @@ export async function generateInterviewPrep(
       const base64Audio = audio.toString('base64')
       const dataUrl = `data:audio/mpeg;base64,${base64Audio}`
       audioUrls.push(dataUrl)
-    } catch {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Failed to generate audio for question:', {
+        question,
+        message: errorMessage,
+        timestamp: new Date().toISOString(),
+      });
       audioUrls.push('')
     }
   }

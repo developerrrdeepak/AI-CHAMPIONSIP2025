@@ -44,10 +44,15 @@ export async function GET(req: NextRequest) {
         plan: sub.items.data[0]?.price?.id,
       })),
     })
-  } catch (error) {
-    console.error('Get subscriptions error:', error)
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Get subscriptions error:', {
+      message: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
-      { error: 'Failed to retrieve subscriptions' },
+      { error: 'Failed to retrieve subscriptions', details: errorMessage },
       { status: 500 }
     )
   }
@@ -119,7 +124,7 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         )
     }
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.errors },
@@ -127,9 +132,14 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    console.error('Subscription action error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Subscription action error:', {
+      message: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
-      { error: 'Failed to process subscription action' },
+      { error: 'Failed to process subscription action', details: errorMessage },
       { status: 500 }
     )
   }

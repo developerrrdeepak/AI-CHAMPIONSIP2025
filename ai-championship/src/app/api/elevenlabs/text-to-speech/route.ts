@@ -2,21 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { text, voiceId } = await request.json();
+    const body = await request.json();
+    const { text, voiceId } = body;
+
+    if (!text || typeof text !== 'string') {
+      return NextResponse.json(
+        { error: 'Text is required and must be a string' },
+        { status: 400 }
+      );
+    }
 
     const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
     const VOICE_ID = voiceId || 'EXAVITQu4vr4xnSDxMaL';
 
     if (!ELEVENLABS_API_KEY) {
-      // Use browser's built-in speech synthesis as fallback
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.9;
-      utterance.pitch = voiceId === '21m00Tcm4TlvDq8ikWAM' ? 0.8 : 1.0;
-      
-      // Return empty audio (browser will handle speech)
-      return new NextResponse(new Blob(), {
-        headers: { 'Content-Type': 'audio/mpeg' }
-      });
+      return NextResponse.json(
+        { error: 'ElevenLabs API key not configured' },
+        { status: 503 }
+      );
     }
 
     const response = await fetch(
@@ -47,10 +50,15 @@ export async function POST(request: NextRequest) {
     return new NextResponse(audioBuffer, {
       headers: { 'Content-Type': 'audio/mpeg' }
     });
-  } catch (error) {
-    console.error('Text-to-speech error:', error);
-    return new NextResponse(new Blob(), {
-      headers: { 'Content-Type': 'audio/mpeg' }
+  } catch (error: any) {
+    console.error('Text-to-speech error:', {
+      message: error?.message || 'Unknown error',
+      stack: error?.stack,
+      timestamp: new Date().toISOString(),
     });
+    return NextResponse.json(
+      { error: 'Failed to generate speech', details: error?.message },
+      { status: 500 }
+    );
   }
 }

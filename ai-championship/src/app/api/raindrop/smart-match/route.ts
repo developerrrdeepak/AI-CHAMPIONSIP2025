@@ -3,7 +3,15 @@ import { raindropInference } from '@/lib/raindrop-client';
 
 export async function POST(request: NextRequest) {
   try {
-    const { resumeText, jobDescription } = await request.json();
+    const body = await request.json();
+    const { resumeText, jobDescription } = body;
+
+    if (!resumeText || typeof resumeText !== 'string' || !jobDescription || typeof jobDescription !== 'string') {
+      return NextResponse.json(
+        { success: false, error: 'resumeText and jobDescription are required and must be strings' },
+        { status: 400 }
+      );
+    }
 
     const result = await raindropInference.analyzeCandidate(resumeText, jobDescription);
 
@@ -17,9 +25,14 @@ export async function POST(request: NextRequest) {
         'Cultural fit indicators present'
       ]
     });
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Smart match error:', {
+      message: errorMessage,
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
-      { success: false, error: 'Failed to analyze candidate' },
+      { success: false, error: 'Failed to analyze candidate', details: errorMessage },
       { status: 500 }
     );
   }

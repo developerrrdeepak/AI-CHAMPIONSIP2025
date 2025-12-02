@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const prep = await generateInterviewPrep(jobDescription, candidateProfile, questionType)
 
     return NextResponse.json(prep)
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.errors },
@@ -24,15 +24,15 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    if (error instanceof Error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 400 }
-      )
-    }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Interview prep error:', {
+      message: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    });
 
     return NextResponse.json(
-      { error: 'Failed to generate interview prep' },
+      { error: 'Failed to generate interview prep', details: errorMessage },
       { status: 500 }
     )
   }

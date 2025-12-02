@@ -15,9 +15,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const resumeKey = `resumes/${candidateId}/${fileName || file.name}`;
+    if (!process.env.VULTR_API_KEY || !process.env.VULTR_OBJECT_STORAGE_CLUSTER_ID) {
+      return NextResponse.json(
+        { error: 'Vultr storage not configured' },
+        { status: 503 }
+      );
+    }
 
-    const vultr = new VultrClient({ apiKey: process.env.VULTR_API_KEY! });
+    const sanitizedCandidateId = candidateId.replace(/[^a-zA-Z0-9_-]/g, '');
+    const sanitizedFileName = (fileName || file.name).replace(/[^a-zA-Z0-9._-]/g, '');
+    
+    if (!sanitizedCandidateId || !sanitizedFileName) {
+      return NextResponse.json(
+        { error: 'Invalid candidateId or fileName format' },
+        { status: 400 }
+      );
+    }
+
+    const resumeKey = `resumes/${sanitizedCandidateId}/${sanitizedFileName}`;
+
+    const vultr = new VultrClient({ apiKey: process.env.VULTR_API_KEY });
     const fileBuffer = Buffer.from(await file.arrayBuffer());
 
     // In a real app, the bucket name and cluster ID should come from environment variables
@@ -39,12 +56,16 @@ export async function POST(request: NextRequest) {
         size: file.size,
       },
     });
-  } catch (error) {
-    console.error('Error uploading resume:', error);
+  } catch (error: any) {
+    console.error('Error uploading resume:', {
+      message: error?.message || 'Unknown error',
+      stack: error?.stack,
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
       {
         error: 'Failed to upload resume',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        details: error?.message || 'Unknown error',
       },
       { status: 500 }
     );
@@ -55,19 +76,35 @@ export async function GET(request: NextRequest) {
   try {
     const resumeKey = request.nextUrl.searchParams.get('resumeKey');
 
-    if (!resumeKey) {
+    if (!resumeKey || typeof resumeKey !== 'string') {
       return NextResponse.json(
         { error: 'Missing parameter: resumeKey' },
         { status: 400 }
       );
     }
 
-    const vultr = new VultrClient({ apiKey: process.env.VULTR_API_KEY! });
+    if (!process.env.VULTR_API_KEY || !process.env.VULTR_OBJECT_STORAGE_CLUSTER_ID) {
+      return NextResponse.json(
+        { error: 'Vultr storage not configured' },
+        { status: 503 }
+      );
+    }
+
+    const sanitizedResumeKey = resumeKey.replace(/[^a-zA-Z0-9._/-]/g, '');
+    
+    if (!sanitizedResumeKey || sanitizedResumeKey.includes('..')) {
+      return NextResponse.json(
+        { error: 'Invalid resumeKey format' },
+        { status: 400 }
+      );
+    }
+
+    const vultr = new VultrClient({ apiKey: process.env.VULTR_API_KEY });
 
     const fileObject = await vultr.objectStorage.getObject({
         'object-storage-cluster-id': process.env.VULTR_OBJECT_STORAGE_CLUSTER_ID!,
         'bucket-name': 'hirevision-bucket',
-        'object-name': resumeKey
+        'object-name': sanitizedResumeKey
     });
 
     if (!fileObject) {
@@ -85,12 +122,16 @@ export async function GET(request: NextRequest) {
         'Content-Disposition': `attachment; filename="${resumeKey.split('/').pop()}"`,
       },
     });
-  } catch (error) {
-    console.error('Error downloading resume:', error);
+  } catch (error: any) {
+    console.error('Error downloading resume:', {
+      message: error?.message || 'Unknown error',
+      stack: error?.stack,
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
       {
         error: 'Failed to download resume',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        details: error?.message || 'Unknown error',
       },
       { status: 500 }
     );

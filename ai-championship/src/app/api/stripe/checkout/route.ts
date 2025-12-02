@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     const { planId, successUrl, cancelUrl } = checkoutSchema.parse(body)
 
     const customer = await createOrUpdateCustomer(userId, userEmail, {
-      userId: userId,
+      userId,
     })
 
     const session = await createCheckoutSession(

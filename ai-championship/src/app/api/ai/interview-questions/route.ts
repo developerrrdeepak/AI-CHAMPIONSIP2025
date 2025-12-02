@@ -3,7 +3,15 @@ import { generateInterviewQuestions } from '@/lib/gemini-ai';
 
 export async function POST(request: NextRequest) {
   try {
-    const { jobTitle, skills, experienceLevel } = await request.json();
+    const body = await request.json();
+    const { jobTitle, skills, experienceLevel } = body;
+
+    if (!jobTitle || typeof jobTitle !== 'string') {
+      return NextResponse.json(
+        { success: false, error: 'jobTitle is required and must be a string' },
+        { status: 400 }
+      );
+    }
 
     const questions = await generateInterviewQuestions(jobTitle, skills || [], experienceLevel || 'Mid');
 
@@ -25,7 +33,15 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, questions, source: 'ai' });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to generate questions' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Interview questions error:', {
+      message: error?.message || 'Unknown error',
+      stack: error?.stack,
+      timestamp: new Date().toISOString(),
+    });
+    return NextResponse.json(
+      { success: false, error: 'Failed to generate questions', details: error?.message },
+      { status: 500 }
+    );
   }
 }

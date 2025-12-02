@@ -11,20 +11,25 @@ export async function GET() {
       version: process.env.npm_package_version || '1.0.0',
       checks: {
         database: 'healthy', // Add actual database check here
-        memory: {
-          used: process.memoryUsage().heapUsed,
-          total: process.memoryUsage().heapTotal,
-        },
+        memory: (() => {
+          const mem = process.memoryUsage();
+          return { used: mem.heapUsed, total: mem.heapTotal };
+        })(),
       },
     };
 
     return NextResponse.json(healthCheck, { status: 200 });
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Health check error:', {
+      message: errorMessage,
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
       {
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: errorMessage,
       },
       { status: 503 }
     );

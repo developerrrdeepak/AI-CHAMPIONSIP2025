@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Send, Paperclip, Mic, Search, MoreVertical } from 'lucide-react';
+import { Send, Paperclip, Mic, Search, MoreVertical, Smile, Image, Phone, Video } from 'lucide-react';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, addDoc, updateDoc, doc, arrayUnion } from 'firebase/firestore';
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -321,39 +321,54 @@ export default function MessagesPage() {
         <Card className="col-span-12 md:col-span-8 flex flex-col">
           {selectedConversation ? (
             <>
-              <div className="p-4 border-b flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Avatar>
+              <div className="p-4 border-b flex items-center justify-between bg-muted/30">
+                <div className="flex items-center gap-3 flex-1">
+                  <Avatar className="h-10 w-10">
                     <AvatarImage src={selectedConversation.participants.find(p => p.id !== userId)?.avatarUrl || placeholderImages[0].imageUrl} />
                     <AvatarFallback>{selectedConversation.participants.find(p => p.id !== userId)?.name.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  <div>
-                    <p className="font-semibold">{selectedConversation.participants.find(p => p.id !== userId)?.name}</p>
-                    <p className="text-sm text-muted-foreground">{selectedConversation.participants.find(p => p.id !== userId)?.role}</p>
+                  <div className="flex-1">
+                    <p className="font-semibold text-base">{selectedConversation.participants.find(p => p.id !== userId)?.name}</p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                      Online • {selectedConversation.participants.find(p => p.id !== userId)?.role}
+                    </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" className="hover:bg-primary/10">
+                    <Phone className="h-5 w-5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="hover:bg-primary/10">
+                    <Video className="h-5 w-5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="hover:bg-primary/10">
+                    <MoreVertical className="h-5 w-5" />
+                  </Button>
+                </div>
               </div>
 
-              <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
+              <CardContent className="flex-1 overflow-y-auto p-4 space-y-3 bg-[url('/chat-bg.png')] bg-repeat">
                 {messages?.map((msg) => {
                   const isSender = msg.senderId === userId;
                   return (
-                    <div key={msg.id} className={`flex ${isSender ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[70%] ${isSender ? 'bg-primary text-primary-foreground' : 'bg-muted'} rounded-lg p-3`}>
-                        {msg.type === 'text' && <p>{msg.content}</p>}
+                    <div key={msg.id} className={`flex ${isSender ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-300`}>
+                      <div className={`max-w-[70%] ${isSender ? 'bg-primary text-primary-foreground' : 'bg-white border'} rounded-2xl ${isSender ? 'rounded-br-sm' : 'rounded-bl-sm'} p-3 shadow-sm`}>
+                        {msg.type === 'text' && <p className="text-sm leading-relaxed break-words">{msg.content}</p>}
                         {msg.type === 'attachment' && (
-                          <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 underline">
+                          <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm hover:underline">
                             <Paperclip className="h-4 w-4" />
                             {msg.attachmentName}
                           </a>
                         )}
                         {msg.type === 'voice' && (
-                          <audio controls src={msg.voiceUrl} className="w-full" />
+                          <audio controls src={msg.voiceUrl} className="w-full max-w-xs" />
                         )}
-                        <p className="text-xs opacity-70 mt-1">{new Date(msg.createdAt).toLocaleTimeString()}</p>
+                        <div className="flex items-center justify-end gap-1 mt-1">
+                          <p className="text-[10px] opacity-60">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                          {isSender && msg.isRead && <span className="text-[10px] opacity-60">✓✓</span>}
+                          {isSender && !msg.isRead && <span className="text-[10px] opacity-60">✓</span>}
+                        </div>
                       </div>
                     </div>
                   );
@@ -361,7 +376,7 @@ export default function MessagesPage() {
                 <div ref={messagesEndRef} />
               </CardContent>
 
-              <div className="p-4 border-t">
+              <div className="p-4 border-t bg-muted/30">
                 <div className="flex items-center gap-2">
                   <input
                     type="file"
@@ -369,27 +384,48 @@ export default function MessagesPage() {
                     className="hidden"
                     onChange={handleFileUpload}
                   />
-                  <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()}>
-                    <Paperclip className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={isRecording ? stopRecording : startRecording}
-                    className={isRecording ? 'text-red-500' : ''}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="hover:bg-primary/10"
                   >
-                    <Mic className="h-4 w-4" />
+                    <Paperclip className="h-5 w-5" />
                   </Button>
-                  <Input
-                    placeholder="Type a message..."
-                    value={messageText}
-                    onChange={(e) => setMessageText(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    className="flex-1"
-                  />
-                  <Button onClick={handleSendMessage} disabled={!messageText.trim()}>
-                    <Send className="h-4 w-4" />
-                  </Button>
+                  <div className="flex-1 relative">
+                    <Input
+                      placeholder="Type a message..."
+                      value={messageText}
+                      onChange={(e) => setMessageText(e.target.value)}
+                      onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
+                      className="pr-10 rounded-full border-2 focus:border-primary"
+                    />
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-primary/10"
+                    >
+                      <Smile className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {messageText.trim() ? (
+                    <Button 
+                      onClick={handleSendMessage} 
+                      size="icon"
+                      className="rounded-full h-10 w-10 bg-primary hover:bg-primary/90"
+                    >
+                      <Send className="h-5 w-5" />
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={isRecording ? stopRecording : startRecording}
+                      className={`rounded-full h-10 w-10 ${isRecording ? 'text-red-500 bg-red-50 animate-pulse' : 'hover:bg-primary/10'}`}
+                    >
+                      <Mic className="h-5 w-5" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </>

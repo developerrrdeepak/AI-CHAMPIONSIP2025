@@ -97,18 +97,51 @@ export default function ProfileEditPage() {
 
 
   const handlePhotoUpload = async (newPhotoUrl: string) => {
-    if (!user || !firestore) return;
+    if (!user || !firestore) {
+      toast({ 
+        title: 'Error', 
+        description: 'Please login to update your photo', 
+        variant: 'destructive' 
+      });
+      return;
+    }
     
     try {
       const userRef = doc(firestore, 'users', user.uid);
-      await updateDoc(userRef, {
-        avatarUrl: newPhotoUrl,
-        photoURL: newPhotoUrl,
-        updatedAt: new Date().toISOString(),
-      });
+      const userSnap = await getDoc(userRef);
+      
+      if (userSnap.exists()) {
+        await updateDoc(userRef, {
+          avatarUrl: newPhotoUrl,
+          photoURL: newPhotoUrl,
+          updatedAt: new Date().toISOString(),
+        });
+      } else {
+        // Create user document if it doesn't exist
+        await setDoc(userRef, {
+          uid: user.uid,
+          displayName: user.displayName || '',
+          email: user.email || '',
+          avatarUrl: newPhotoUrl,
+          photoURL: newPhotoUrl,
+          role: 'Candidate',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      
       setPhotoUrl(newPhotoUrl);
+      toast({ 
+        title: 'Success!', 
+        description: 'Profile photo updated successfully' 
+      });
     } catch (error) {
       console.error('Error updating photo in Firestore:', error);
+      toast({ 
+        title: 'Error', 
+        description: 'Failed to save photo to database', 
+        variant: 'destructive' 
+      });
     }
   };
 

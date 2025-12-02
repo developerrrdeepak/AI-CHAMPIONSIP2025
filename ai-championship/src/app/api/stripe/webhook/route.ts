@@ -13,7 +13,21 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.text()
-    const event = constructEvent(body, signature)
+    
+    let event;
+    try {
+      event = constructEvent(body, signature);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Stripe signature verification failed:', {
+        message: errorMessage,
+        timestamp: new Date().toISOString(),
+      });
+      return NextResponse.json(
+        { error: 'Invalid signature' },
+        { status: 400 }
+      );
+    }
 
     const db = getFirestore()
 
@@ -90,17 +104,28 @@ export async function POST(req: NextRequest) {
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as any
-        console.error(`Payment failed for invoice ${invoice.id}`)
+        console.error('Payment failed:', {
+          invoiceId: invoice.id,
+          customerId: invoice.customer,
+          amount: invoice.total,
+          currency: invoice.currency,
+          timestamp: new Date().toISOString(),
+        });
         break
       }
     }
 
     return NextResponse.json({ received: true })
-  } catch (error) {
-    console.error('Webhook error:', error)
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Webhook error:', {
+      message: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
-      { error: 'Webhook processing failed' },
+      { error: 'Webhook processing failed', details: errorMessage },
       { status: 500 }
-    )
+    );
   }
 }

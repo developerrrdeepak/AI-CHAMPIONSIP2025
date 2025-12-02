@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const TECH_SKILLS_PATTERN = /\b(React|TypeScript|Node\.js|Python|Java|AWS|Docker|Kubernetes|JavaScript|Vue|Angular|MongoDB|PostgreSQL|GraphQL|Go|Rust)\b/gi;
+const YEARS_PATTERN = /(\d+)\+?\s*years?/i;
+
 function analyzeResumeText(resumeText: string, jobDescription?: string): string {
-  const lines = resumeText.split('\n').filter(l => l.trim());
-  const skills = resumeText.match(/\b(React|TypeScript|Node\.js|Python|Java|AWS|Docker|Kubernetes|JavaScript|Vue|Angular|MongoDB|PostgreSQL|GraphQL|Go|Rust)\b/gi) || [];
+  const skills = resumeText.match(TECH_SKILLS_PATTERN) || [];
   const uniqueSkills = [...new Set(skills.map(s => s.toLowerCase()))];
-  const yearsMatch = resumeText.match(/(\d+)\+?\s*years?/i);
+  const yearsMatch = resumeText.match(YEARS_PATTERN);
   const years = yearsMatch ? parseInt(yearsMatch[1]) : 0;
   
   let analysis = `**Resume Analysis:**\n\n`;
@@ -23,7 +25,7 @@ function analyzeResumeText(resumeText: string, jobDescription?: string): string 
   }
   
   if (jobDescription) {
-    const jobSkills = jobDescription.match(/\b(React|TypeScript|Node\.js|Python|Java|AWS|Docker|Kubernetes|JavaScript|Vue|Angular|MongoDB|PostgreSQL|GraphQL|Go|Rust)\b/gi) || [];
+    const jobSkills = jobDescription.match(TECH_SKILLS_PATTERN) || [];
     const matchingSkills = uniqueSkills.filter(s => jobSkills.some(js => js.toLowerCase() === s));
     const matchPercent = jobSkills.length > 0 ? Math.round((matchingSkills.length / jobSkills.length) * 100) : 0;
     
@@ -48,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     const analysis = analyzeResumeText(resumeText, jobDescription);
-    const skills = resumeText.match(/\b(React|TypeScript|Node\.js|Python|Java|AWS|Docker|Kubernetes|JavaScript|Vue|Angular|MongoDB|PostgreSQL|GraphQL|Go|Rust)\b/gi) || [];
+    const skills = resumeText.match(TECH_SKILLS_PATTERN) || [];
     const matchScore = Math.min(95, 60 + (skills.length * 5));
 
     return NextResponse.json({

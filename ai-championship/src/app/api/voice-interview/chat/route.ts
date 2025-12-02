@@ -2,7 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, conversationHistory } = await request.json();
+    const body = await request.json();
+    const { message, conversationHistory } = body;
+
+    if (!message || typeof message !== 'string') {
+      return NextResponse.json(
+        { success: false, error: 'Message is required and must be a string' },
+        { status: 400 }
+      );
+    }
+
+    if (!Array.isArray(conversationHistory)) {
+      return NextResponse.json(
+        { success: false, error: 'conversationHistory must be an array' },
+        { status: 400 }
+      );
+    }
 
     const lowerMessage = message.toLowerCase();
     let response = '';
@@ -46,9 +61,14 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, response });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Voice interview error:', {
+      message: error?.message || 'Unknown error',
+      stack: error?.stack,
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
-      { success: false, error: 'Failed to process interview' },
+      { success: false, error: 'Failed to process interview', details: error?.message },
       { status: 500 }
     );
   }

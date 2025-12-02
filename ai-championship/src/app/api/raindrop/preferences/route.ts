@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // In-memory storage for demo (use SmartMemory in production)
-const preferencesStore = new Map<string, any>();
+interface UserPreferences {
+  [key: string]: unknown;
+  updatedAt?: string;
+}
+
+const preferencesStore = new Map<string, UserPreferences>();
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,12 +26,16 @@ export async function GET(request: NextRequest) {
       data: preferences,
       message: 'User preferences retrieved successfully',
     });
-  } catch (error) {
-    console.error('Error retrieving preferences:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error retrieving preferences:', {
+      message: errorMessage,
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
       {
         error: 'Failed to retrieve preferences',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        details: errorMessage,
       },
       { status: 500 }
     );
@@ -54,12 +63,16 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'User preferences saved successfully',
     });
-  } catch (error) {
-    console.error('Error saving preferences:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error saving preferences:', {
+      message: errorMessage,
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
       {
         error: 'Failed to save preferences',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        details: errorMessage,
       },
       { status: 500 }
     );

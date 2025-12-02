@@ -12,9 +12,12 @@ try {
       projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
     });
     adminInitialized = true;
+  } else if (getApps().length) {
+    adminInitialized = true;
   }
-} catch (error) {
-  console.warn('Firebase Admin not initialized:', error);
+} catch (error: any) {
+  console.error('Firebase Admin initialization failed:', error?.message || error);
+  adminInitialized = false;
 }
 
 export async function GET(request: NextRequest) {
@@ -71,11 +74,16 @@ export async function GET(request: NextRequest) {
         owner: userData?.role === 'Owner',
       },
     })
-  } catch (error: any) {
-    console.error('Error getting claims:', error)
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error getting claims:', {
+      message: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
-      { error: 'Invalid or expired token' },
+      { error: 'Invalid or expired token', details: errorMessage },
       { status: 401 }
-    )
+    );
   }
 }

@@ -41,12 +41,15 @@ export default function AIAssistantPage() {
         })
       });
 
-      if (!response.ok) throw new Error('API error');
-      
       const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'API error');
+      }
+      
       const assistantMessage = {
         role: 'assistant',
-        content: data.response || 'I can help you with recruitment tasks, candidate matching, and job posting optimization.'
+        content: data.response
       };
       
       setMessages(prev => [...prev, assistantMessage]);
@@ -54,7 +57,7 @@ export default function AIAssistantPage() {
       console.error('AI chat error:', error);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'I\'m here to help with recruitment tasks. Try asking about candidate matching, job requirements, or interview preparation.'
+        content: 'Sorry, I encountered an error. Please check your API key configuration and try again.'
       }]);
     } finally {
       setIsLoading(false);

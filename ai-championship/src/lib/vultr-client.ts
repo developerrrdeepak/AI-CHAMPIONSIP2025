@@ -1,17 +1,27 @@
-'use client';
-
 // @ts-ignore - Vultr SDK types
 import VultrNode from '@vultr/vultr-node';
 
 // Vultr Client for compute and storage
 export class VultrService {
-  private client: any;
+  private client: any | null;
   private apiKey: string;
 
   constructor() {
     this.apiKey = process.env.VULTR_API_KEY || '';
-    if (this.apiKey) {
+    
+    if (!this.apiKey) {
+      console.warn('Vultr API key not configured');
+      this.client = null;
+      return;
+    }
+    try {
       this.client = VultrNode.initialize({ apiKey: this.apiKey });
+    } catch (error: any) {
+      console.error('Vultr client initialization failed:', {
+        message: error?.message || 'Unknown error',
+        timestamp: new Date().toISOString(),
+      });
+      this.client = null;
     }
   }
 
@@ -34,9 +44,13 @@ export class VultrService {
       });
 
       return { success: true, instance };
-    } catch (error) {
-      console.error('Vultr deployment error:', error);
-      return { success: false, error };
+    } catch (error: any) {
+      console.error('Vultr deployment error:', {
+        message: error?.message || 'Unknown error',
+        stack: error?.stack,
+        timestamp: new Date().toISOString(),
+      });
+      return { success: false, error: error?.message || 'Deployment failed' };
     }
   }
 
@@ -57,9 +71,13 @@ export class VultrService {
 
       if (!response.ok) throw new Error('Vultr storage error');
       return { success: true, url: `https://ewr1.vultrobjects.com/hirevision/${path}` };
-    } catch (error) {
-      console.error('Vultr storage error:', error);
-      return { success: false };
+    } catch (error: any) {
+      console.error('Vultr storage error:', {
+        message: error?.message || 'Unknown error',
+        stack: error?.stack,
+        timestamp: new Date().toISOString(),
+      });
+      return { success: false, error: error?.message || 'Upload failed' };
     }
   }
 
@@ -70,8 +88,12 @@ export class VultrService {
     try {
       const instance = await this.client.instances.getInstance({ 'instance-id': instanceId });
       return instance;
-    } catch (error) {
-      console.error('Vultr status error:', error);
+    } catch (error: any) {
+      console.error('Vultr status error:', {
+        message: error?.message || 'Unknown error',
+        instanceId,
+        timestamp: new Date().toISOString(),
+      });
       return null;
     }
   }
@@ -91,9 +113,13 @@ export class VultrService {
       });
 
       return { success: true, database };
-    } catch (error) {
-      console.error('Vultr database error:', error);
-      return { success: false, error };
+    } catch (error: any) {
+      console.error('Vultr database error:', {
+        message: error?.message || 'Unknown error',
+        stack: error?.stack,
+        timestamp: new Date().toISOString(),
+      });
+      return { success: false, error: error?.message || 'Database creation failed' };
     }
   }
 }

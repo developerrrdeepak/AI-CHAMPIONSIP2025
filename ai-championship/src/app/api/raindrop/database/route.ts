@@ -1,19 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(request: NextRequest) {
-  try {
-    const operation = request.nextUrl.searchParams.get('operation');
-    const organizationId = request.nextUrl.searchParams.get('organizationId');
-
-    if (!operation) {
-      return NextResponse.json(
-        { error: 'Missing parameter: operation' },
-        { status: 400 }
-      );
-    }
-
-    // Mock data for demonstration
-    const mockCandidates = [
+// Mock data for demonstration
+const mockCandidates = [
       {
         id: 'cand-1',
         name: 'John Doe',
@@ -32,7 +20,7 @@ export async function GET(request: NextRequest) {
       }
     ];
 
-    const mockJobs = [
+const mockJobs = [
       {
         id: 'job-1',
         title: 'Senior React Developer',
@@ -50,6 +38,18 @@ export async function GET(request: NextRequest) {
         department: 'Data'
       }
     ];
+
+export async function GET(request: NextRequest) {
+  try {
+    const operation = request.nextUrl.searchParams.get('operation');
+    const organizationId = request.nextUrl.searchParams.get('organizationId');
+
+    if (!operation) {
+      return NextResponse.json(
+        { error: 'Missing parameter: operation' },
+        { status: 400 }
+      );
+    }
 
     let result;
 

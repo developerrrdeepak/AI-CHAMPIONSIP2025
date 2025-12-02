@@ -3,7 +3,15 @@ import { extractSkillsFromJD } from '@/lib/gemini-ai';
 
 export async function POST(request: NextRequest) {
   try {
-    const { jobDescription } = await request.json();
+    const body = await request.json();
+    const { jobDescription } = body;
+
+    if (!jobDescription || typeof jobDescription !== 'string') {
+      return NextResponse.json(
+        { success: false, error: 'jobDescription is required and must be a string' },
+        { status: 400 }
+      );
+    }
 
     const skills = await extractSkillsFromJD(jobDescription);
 
@@ -15,7 +23,15 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ success: true, skills, source: 'ai' });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to extract skills' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Skill extraction error:', {
+      message: error?.message || 'Unknown error',
+      stack: error?.stack,
+      timestamp: new Date().toISOString(),
+    });
+    return NextResponse.json(
+      { success: false, error: 'Failed to extract skills', details: error?.message },
+      { status: 500 }
+    );
   }
 }

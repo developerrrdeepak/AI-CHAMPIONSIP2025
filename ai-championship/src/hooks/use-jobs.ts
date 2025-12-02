@@ -57,5 +57,8 @@ export function useJobs(role?: string, organizationId?: string) {
     setIsLoading(false);
   }, [firestore, role, organizationId]);
 
-  return { jobs, isLoading, error };
+  // Fallback to mock data if no jobs
+  const finalJobs = jobs.length > 0 ? jobs : (await import('@/lib/mock-data')).mockJobs;
+  
+  return { jobs: finalJobs, isLoading, error };
 }
