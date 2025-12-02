@@ -22,10 +22,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { useUserContext } from "../layout";
+import { CompanyLogoUpload } from "@/components/company-logo-upload";
 
 const settingsFormSchema = z.object({
     name: z.string().min(1, "Organization name is required"),
-    logoUrl: z.string().url("Must be a valid URL").optional().or(z.literal('')),
     about: z.string().optional(),
     websiteUrl: z.string().url("Must be a valid URL").optional().or(z.literal('')),
     linkedinUrl: z.string().url("Must be a valid URL").optional().or(z.literal('')),
@@ -35,9 +35,10 @@ const settingsFormSchema = z.object({
 type SettingsFormData = z.infer<typeof settingsFormSchema>;
 
 function OrganizationSettingsForm({ organization, isOrgLoading }: { organization: Organization | null, isOrgLoading: boolean }) {
-    const { firestore } = useFirebase();
+    const { firestore, storage } = useFirebase();
     const { organizationId } = useUserContext();
     const { toast } = useToast();
+    const [logoUrl, setLogoUrl] = useState('');
 
     const orgRef = useMemoFirebase(() => {
         if (!firestore || !organizationId) return null;
@@ -46,21 +47,34 @@ function OrganizationSettingsForm({ organization, isOrgLoading }: { organization
 
     const form = useForm<SettingsFormData>({
         resolver: zodResolver(settingsFormSchema),
-        defaultValues: { name: "", logoUrl: "", primaryBrandColor: "", about: "", websiteUrl: "", linkedinUrl: "" }
+        defaultValues: { name: "", primaryBrandColor: "", about: "", websiteUrl: "", linkedinUrl: "" }
     });
 
     useEffect(() => {
         if (organization) {
             form.reset({
                 name: organization.name,
-                logoUrl: organization.logoUrl || "",
                 primaryBrandColor: organization.primaryBrandColor || "",
                 about: organization.about || "",
                 websiteUrl: organization.websiteUrl || "",
                 linkedinUrl: organization.linkedinUrl || "",
             });
+            setLogoUrl(organization.logoUrl || '');
         }
     }, [organization, form]);
+
+    const handleLogoUpload = async (newLogoUrl: string) => {
+        if (!orgRef) return;
+        try {
+            await updateDoc(orgRef, {
+                logoUrl: newLogoUrl,
+                updatedAt: new Date().toISOString(),
+            });
+            setLogoUrl(newLogoUrl);
+        } catch (error) {
+            console.error('Error updating logo:', error);
+        }
+    };
 
     async function onSubmit(values: SettingsFormData) {
         if (!orgRef) return;
@@ -132,19 +146,19 @@ function OrganizationSettingsForm({ organization, isOrgLoading }: { organization
                             </FormItem>
                             )}
                         />
-                         <FormField
-                            control={form.control}
-                            name="logoUrl"
-                            render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Logo URL</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="https://example.com/logo.png" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                            )}
-                        />
+                        <div>
+                            <FormLabel>Company Logo</FormLabel>
+                            <div className="mt-2">
+                                {storage && organizationId && (
+                                    <CompanyLogoUpload
+                                        organizationId={organizationId}
+                                        currentLogoUrl={logoUrl}
+                                        storage={storage}
+                                        onUploadComplete={handleLogoUpload}
+                                    />
+                                )}
+                            </div>
+                        </div>
                         <FormField
                             control={form.control}
                             name="about"

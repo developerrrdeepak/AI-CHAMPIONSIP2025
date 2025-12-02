@@ -65,17 +65,27 @@ export default function CommunityPage() {
     return allPosts.filter(p => p.type === activeTab);
   }, [allPosts, activeTab, connectedUserIds]);
 
-  const handleCreatePost = async () => {
-    if (!firestore || !userId || !postTitle.trim() || !postContent.trim()) return;
+  const [isPublishing, setIsPublishing] = useState(false);
 
+  const handleCreatePost = async () => {
+    if (!firestore || !userId || !postTitle.trim() || !postContent.trim()) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing information',
+        description: 'Please fill in both title and content.',
+      });
+      return;
+    }
+
+    setIsPublishing(true);
     try {
       await addDoc(collection(firestore, 'posts'), {
         authorId: userId,
-        authorName: displayName,
-        authorRole: role,
+        authorName: displayName || 'Anonymous',
+        authorRole: role || 'User',
         type: postType,
-        title: postTitle,
-        content: postContent,
+        title: postTitle.trim(),
+        content: postContent.trim(),
         likes: [],
         comments: [],
         createdAt: new Date().toISOString(),
@@ -83,8 +93,8 @@ export default function CommunityPage() {
       });
 
       toast({
-        title: 'Post created',
-        description: 'Your post has been published successfully.',
+        title: 'Post published!',
+        description: 'Your post is now live in the community.',
       });
 
       setIsModalOpen(false);
@@ -92,12 +102,14 @@ export default function CommunityPage() {
       setPostContent('');
       setPostType('article');
     } catch (error) {
-      console.error(error);
+      console.error('Post creation error:', error);
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to create post.',
+        title: 'Failed to publish',
+        description: 'Please try again.',
       });
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -248,9 +260,16 @@ export default function CommunityPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreatePost} disabled={!postTitle.trim() || !postContent.trim()}>
-              Publish
+            <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={isPublishing}>Cancel</Button>
+            <Button onClick={handleCreatePost} disabled={!postTitle.trim() || !postContent.trim() || isPublishing}>
+              {isPublishing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Publishing...
+                </>
+              ) : (
+                'Publish'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

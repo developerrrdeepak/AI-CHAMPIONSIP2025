@@ -7,6 +7,40 @@ import { Button } from '@/components/ui/button';
 import { Upload, Loader2, Camera } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+// Compress image before upload
+async function compressImage(file: File, maxWidth = 800, quality = 0.8): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (e) => {
+      const img = document.createElement('img');
+      img.src = e.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error('Compression failed'));
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = reject;
+    };
+    reader.onerror = reject;
+  });
+}
+
 interface ProfilePhotoUploadProps {
   userId: string;
   currentPhotoUrl?: string;
@@ -66,8 +100,11 @@ export function ProfilePhotoUpload({
     // Upload to Firebase Storage
     setUploading(true);
     try {
+      // Compress image before upload
+      const compressedBlob = await compressImage(file);
+      
       const photoRef = ref(storage, `profiles/${userId}/photo_${Date.now()}.jpg`);
-      const uploadResult = await uploadBytes(photoRef, file);
+      const uploadResult = await uploadBytes(photoRef, compressedBlob);
       const downloadUrl = await getDownloadURL(uploadResult.ref);
 
       // Update preview with permanent URL
