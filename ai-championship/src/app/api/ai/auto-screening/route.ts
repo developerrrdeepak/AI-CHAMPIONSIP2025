@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GENAI_API_KEY || '');
+import { smartInferenceInvoke } from '@/lib/raindropClient';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,8 +11,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
     const prompt = `Compare resume with job description and provide screening analysis:
 
@@ -46,8 +42,8 @@ Return ONLY valid JSON:
   "decision": "Shortlist for interview"
 }`;
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const result = await smartInferenceInvoke('gemini-2.0-flash-exp', prompt) as any;
+    const text = typeof result === 'string' ? result : JSON.stringify(result);
     
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
