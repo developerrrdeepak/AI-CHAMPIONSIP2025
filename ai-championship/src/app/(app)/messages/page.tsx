@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Send, Paperclip, Mic, Search, MoreVertical, Smile, Image, Phone, Video } from 'lucide-react';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, orderBy, addDoc, updateDoc, doc, arrayUnion } from 'firebase/firestore';
+import { collection, query, orderBy } from 'firebase/firestore';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useUserContext } from '../layout';
 import type { Conversation, Message } from '@/lib/definitions';
@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { placeholderImages } from '@/lib/placeholder-images';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { mockConversations, mockMessages } from '@/lib/mock-messages';
+import { sendMessage, subscribeToMessages } from '@/lib/messaging-service';
 
 export default function MessagesPage() {
   const { firestore, storage } = useFirebase();
@@ -63,13 +64,26 @@ export default function MessagesPage() {
     );
   }, [firestore, selectedConversation]);
 
-  const { data: messages } = useCollection<Message>(messagesQuery);
+  const [realTimeMessages, setRealTimeMessages] = useState<Message[]>([]);
+  
+  useEffect(() => {
+    if (!firestore || !selectedConversation) {
+      setRealTimeMessages([]);
+      return;
+    }
+    
+    const unsubscribe = subscribeToMessages(firestore, selectedConversation.id, (msgs) => {
+      setRealTimeMessages(msgs);
+    });
+    
+    return () => unsubscribe();
+  }, [firestore, selectedConversation]);
   
   const displayMessages = useMemo(() => {
-    if (messages && messages.length > 0) return messages;
+    if (realTimeMessages && realTimeMessages.length > 0) return realTimeMessages;
     if (selectedConversation) return mockMessages[selectedConversation.id] || [];
     return [];
-  }, [messages, selectedConversation]);
+  }, [realTimeMessages, selectedConversation]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -94,37 +108,22 @@ export default function MessagesPage() {
       const receiver = selectedConversation.participants.find(p => p.id !== userId);
       if (!receiver) return;
 
-      await addDoc(collection(firestore, `conversations/${selectedConversation.id}/messages`), {
-        conversationId: selectedConversation.id,
-        senderId: userId,
-        senderName: displayName,
-        senderRole: role,
-        receiverId: receiver.id,
-        type: 'text',
-        content: messageText,
-        isRead: false,
-        createdAt: new Date().toISOString(),
-      });
-
-      await updateDoc(doc(firestore, 'conversations', selectedConversation.id), {
-        lastMessage: messageText,
-        lastMessageAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        [`unreadCount.${receiver.id}`]: (selectedConversation.unreadCount?.[receiver.id] || 0) + 1,
-      });
-
-      await updateDoc(doc(firestore, 'users', receiver.id), {
-        notifications: arrayUnion({
-          id: `msg-${Date.now()}`,
-          type: 'message',
-          message: `${displayName} sent you a message`,
-          conversationId: selectedConversation.id,
-          timestamp: new Date().toISOString(),
-          read: false,
-        })
-      });
+      await sendMessage(
+        firestore,
+        selectedConversation.id,
+        userId,
+        displayName || 'User',
+        role || 'User',
+        receiver.id,
+        messageText
+      );
 
       setMessageText('');
+      
+      toast({
+        title: 'Message sent',
+        description: 'Your message has been delivered.',
+      });
     } catch (error) {
       console.error(error);
       toast({
