@@ -36,19 +36,14 @@ export default function AIAssistantPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           message: currentInput, 
-          context: 'recruitment_assistant',
-          useRaindrop: true
+          context: 'recruitment_assistant'
         })
       });
 
       const data = await response.json();
       
       if (!response.ok || !data.success) {
-        const errorMsg = data.error || 'API error';
-        if (errorMsg.includes('API key') || errorMsg.includes('GOOGLE_GENAI_API_KEY')) {
-          throw new Error('Google AI API key not configured. Please add GOOGLE_GENAI_API_KEY to environment variables.');
-        }
-        throw new Error(errorMsg);
+        throw new Error(data.error || 'API error');
       }
       
       const assistantMessage = {
