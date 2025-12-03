@@ -265,7 +265,7 @@ export default function CommunityPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsModalOpen(false)} disabled={isPublishing}>Cancel</Button>
-            <Button onClick={handleCreatePost} disabled={!postTitle.trim() || !postContent.trim() || isPublishing}>
+            <Button onClick={handleCreatePost} disabled={isPublishing}>
               {isPublishing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
