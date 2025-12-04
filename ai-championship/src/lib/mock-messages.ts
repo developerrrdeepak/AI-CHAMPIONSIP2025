@@ -1,1 +1,2 @@
-export const mockMessages = [];
+export const mockConversations: any[] = [];
+export const mockMessages: Record<string, any[]> = {};

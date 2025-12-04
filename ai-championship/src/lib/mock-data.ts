@@ -1,1 +1,1 @@
-export const mockCandidates = [];
+export const MOCK_CANDIDATES: any[] = [];
