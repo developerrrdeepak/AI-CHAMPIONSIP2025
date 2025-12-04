@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -26,7 +27,9 @@ import {
   Heart,
   Sparkles,
   UserPlus,
-  MessageCircle
+  MessageCircle,
+  Globe,
+  HeartHandshake
 } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import Link from 'next/link';

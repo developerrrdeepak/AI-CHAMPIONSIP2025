@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from 'next/server';
 import { createAIAssistant } from '@/lib/universal-ai-assistant';
 
