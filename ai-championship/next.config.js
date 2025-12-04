@@ -1,6 +1,5 @@
-import type { NextConfig } from 'next';
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   experimental: {
     esmExternals: 'loose',
   },
@@ -15,7 +14,6 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
   
-  // Security headers
   async headers() {
     return [
       {
@@ -79,10 +77,9 @@ const nextConfig: NextConfig = {
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   
-  // Environment variable validation
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
