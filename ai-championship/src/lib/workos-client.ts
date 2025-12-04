@@ -9,7 +9,10 @@ export class WorkOSClient {
   constructor() {
     this.clientId = process.env.NEXT_PUBLIC_WORKOS_CLIENT_ID || 'client_01KBHRHN28PMCCDP8YR4EH5XPH';
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:9002';
-    this.redirectUri = process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI || `${baseUrl}/api/auth/workos/callback`;
+    const isProduction = baseUrl.includes('netlify.app');
+    this.redirectUri = isProduction 
+      ? 'https://hireviision.netlify.app/api/auth/workos/callback'
+      : `${baseUrl}/api/auth/workos/callback`;
   }
 
   getAuthorizationUrl(provider: 'google' | 'microsoft' | 'github' = 'google') {
