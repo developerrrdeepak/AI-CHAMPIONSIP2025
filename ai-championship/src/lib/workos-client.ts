@@ -4,13 +4,11 @@
 // WorkOS Authentication Client
 export class WorkOSClient {
   private clientId: string;
-  private apiKey: string;
   private redirectUri: string;
 
   constructor() {
-    this.clientId = process.env.NEXT_PUBLIC_WORKOS_CLIENT_ID || '';
-    this.apiKey = process.env.WORKOS_API_KEY || '';
-    this.redirectUri = process.env.NEXT_PUBLIC_WORKOS_REDIRECT_URI || 'http://localhost:9002/auth/callback';
+    this.clientId = process.env.NEXT_PUBLIC_WORKOS_CLIENT_ID || 'client_01KBHRHN28PMCCDP8YR4EH5XPH';
+    this.redirectUri = process.env.WORKOS_REDIRECT_URI || 'http://localhost:9002/api/auth/workos/callback';
   }
 
   getAuthorizationUrl(provider: 'google' | 'microsoft' | 'github' = 'google') {
@@ -38,23 +36,6 @@ export class WorkOSClient {
     } catch (error) {
       console.error('WorkOS auth error:', error);
       return { success: false, error };
-    }
-  }
-
-  async getProfile(accessToken: string) {
-    try {
-      const response = await fetch('https://api.workos.com/user_management/users/me', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) throw new Error('Failed to get profile');
-      return await response.json();
-    } catch (error) {
-      console.error('WorkOS profile error:', error);
-      return null;
     }
   }
 
