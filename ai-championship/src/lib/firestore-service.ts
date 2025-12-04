@@ -13,7 +13,8 @@ import {
   Firestore,
   QueryConstraint,
   CollectionReference,
-  DocumentData
+  DocumentData,
+  getDoc
 } from 'firebase/firestore';
 
 export interface FirestoreSubscription {
@@ -28,16 +29,20 @@ export function subscribeToAllJobs(
 ): FirestoreSubscription {
   const unsubscribes: (() => void)[] = [];
   
-  // First, get all organizations
-  getDocs(collection(firestore, 'organizations')).then(orgsSnapshot => {
-    const allJobs: any[] = [];
-    let completedOrgs = 0;
-    const totalOrgs = orgsSnapshot.size;
+  const orgsRef = collection(firestore, 'organizations');
+  
+  const orgsSnapshotUnsubscribe = onSnapshot(orgsRef, (orgsSnapshot) => {
+    // Clear previous job subscriptions
+    unsubscribes.forEach(unsub => unsub());
+    unsubscribes.length = 0; // Reset the array
 
-    if (totalOrgs === 0) {
+    const allJobs: any[] = [];
+    if (orgsSnapshot.empty) {
       onUpdate([]);
       return;
     }
+    
+    let processedOrgs = 0;
 
     orgsSnapshot.forEach(orgDoc => {
       const jobsRef = collection(firestore, `organizations/${orgDoc.id}/jobs`);
@@ -52,34 +57,32 @@ export function subscribeToAllJobs(
             organizationId: orgDoc.id
           }));
           
-          // Merge jobs from this org
+          // Replace jobs for this org
           const otherJobs = allJobs.filter(j => j.organizationId !== orgDoc.id);
-          const updatedJobs = [...otherJobs, ...orgJobs];
           allJobs.length = 0;
-          allJobs.push(...updatedJobs);
-          
-          completedOrgs++;
-          if (completedOrgs >= totalOrgs) {
-            onUpdate([...allJobs]);
-          }
+          allJobs.push(...otherJobs, ...orgJobs);
+
+          onUpdate([...allJobs]);
         },
         (error) => {
-          console.error('Error fetching jobs:', error);
+          console.error(`Error fetching jobs for org ${orgDoc.id}:`, error);
           onError?.(error);
         }
       );
-      
       unsubscribes.push(unsubscribe);
     });
-  }).catch(error => {
+  }, (error) => {
     console.error('Error fetching organizations:', error);
     onError?.(error);
   });
+
+  unsubscribes.push(orgsSnapshotUnsubscribe);
 
   return {
     unsubscribe: () => unsubscribes.forEach(unsub => unsub())
   };
 }
+
 
 // Get all challenges across all organizations
 export function subscribeToAllChallenges(
@@ -88,13 +91,14 @@ export function subscribeToAllChallenges(
   onError?: (error: Error) => void
 ): FirestoreSubscription {
   const unsubscribes: (() => void)[] = [];
+  const orgsRef = collection(firestore, 'organizations');
   
-  getDocs(collection(firestore, 'organizations')).then(orgsSnapshot => {
-    const allChallenges: any[] = [];
-    let completedOrgs = 0;
-    const totalOrgs = orgsSnapshot.size;
+  const orgsSnapshotUnsubscribe = onSnapshot(orgsRef, (orgsSnapshot) => {
+    unsubscribes.forEach(unsub => unsub());
+    unsubscribes.length = 0;
 
-    if (totalOrgs === 0) {
+    const allChallenges: any[] = [];
+    if (orgsSnapshot.empty) {
       onUpdate([]);
       return;
     }
@@ -105,39 +109,37 @@ export function subscribeToAllChallenges(
       const unsubscribe = onSnapshot(
         challengesRef,
         (snapshot) => {
-          const orgChallenges = snapshot.docs.map(doc => ({
+           const orgChallenges = snapshot.docs.map(doc => ({
             ...doc.data(),
             id: doc.id,
             organizationId: orgDoc.id
           }));
           
           const otherChallenges = allChallenges.filter(c => c.organizationId !== orgDoc.id);
-          const updatedChallenges = [...otherChallenges, ...orgChallenges];
           allChallenges.length = 0;
-          allChallenges.push(...updatedChallenges);
-          
-          completedOrgs++;
-          if (completedOrgs >= totalOrgs) {
-            onUpdate([...allChallenges]);
-          }
+          allChallenges.push(...otherChallenges, ...orgChallenges);
+
+          onUpdate([...allChallenges]);
         },
         (error) => {
-          console.error('Error fetching challenges:', error);
+          console.error(`Error fetching challenges for org ${orgDoc.id}:`, error);
           onError?.(error);
         }
       );
-      
       unsubscribes.push(unsubscribe);
     });
-  }).catch(error => {
-    console.error('Error fetching organizations:', error);
+  }, (error) => {
+    console.error('Error fetching organizations for challenges:', error);
     onError?.(error);
   });
+
+  unsubscribes.push(orgsSnapshotUnsubscribe);
 
   return {
     unsubscribe: () => unsubscribes.forEach(unsub => unsub())
   };
 }
+
 
 // Get jobs for specific organization (for employers)
 export function subscribeToOrgJobs(
