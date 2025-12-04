@@ -1,6 +1,7 @@
 [build]
-  command = "npm run build"
-  publish = "ai-championship/.next"
+  command = "cd ai-championship && npm install && npm run build"
+  publish = "ai-championship/out"
 
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_FLAGS = "--legacy-peer-deps"

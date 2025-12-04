@@ -1,6 +1,8 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  output: 'export',
+  distDir: 'out',
   experimental: {
     esmExternals: 'loose',
     turbo: {
@@ -20,7 +22,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   swcMinify: true,
-  poweredByHeader: false, // Remove X-Powered-By header for security
+  poweredByHeader: false,
   compress: true,
   
   // Security headers
