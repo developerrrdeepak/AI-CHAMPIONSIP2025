@@ -1,30 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { smarterResumeAnalysisFlow } from '@/ai/flows/ai-smarter-resume-analysis';
+import { smarterResumeAnalysis } from '@/ai/flows/ai-smarter-resume-analysis';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { resumePath } = body;
+    const { resumeText } = body;
 
-    if (!resumePath || typeof resumePath !== 'string') {
+    if (!resumeText || typeof resumeText !== 'string') {
       return NextResponse.json(
-        { error: 'Missing required field: resumePath' },
+        { error: 'Missing required field: resumeText' },
         { status: 400 }
       );
     }
 
-    const sanitizedPath = resumePath.replace(/[^a-zA-Z0-9._/-]/g, '');
-    
-    if (!sanitizedPath || sanitizedPath.includes('..')) {
-      return NextResponse.json(
-        { error: 'Invalid resumePath format' },
-        { status: 400 }
-      );
-    }
-
-    const analysisResult = await smarterResumeAnalysisFlow.run({
-      input: { resumePath: sanitizedPath },
-    });
+    const analysisResult = await smarterResumeAnalysis(resumeText);
 
     return NextResponse.json({
       success: true,

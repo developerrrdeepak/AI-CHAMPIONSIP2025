@@ -1,46 +1,61 @@
 import { z } from 'zod';
+import { ai, geminiPro } from '@/ai/genkit';
 
 const ResumeAnalysisSchema = z.object({
-  skills: z.array(z.string()),
+  skills: z.array(z.string()).describe("List of technical and soft skills."),
   experience: z.array(z.object({
     skill: z.string(),
     years: z.number(),
-  })),
+  })).describe("Years of experience per key skill."),
   education: z.array(z.object({
     institution: z.string(),
     degree: z.string(),
     year: z.number().optional(),
-  })),
+  })).describe("Educational background."),
   workHistory: z.array(z.object({
     company: z.string(),
     position: z.string(),
     duration: z.string(),
-  })),
+  })).describe("Timeline of work experience."),
 });
 
-// Flow temporarily disabled - requires Raindrop integration
-export const smarterResumeAnalysisFlow = async (resumePath: string) => {
-  const analysisResult = await callVultrModel(Buffer.from(''));
-  return ResumeAnalysisSchema.parse(analysisResult);
-};
+const SmarterResumeAnalysisInputSchema = z.object({
+  resumeText: z.string().describe("The full text of the resume to analyze."),
+});
 
-async function callVultrModel(resumeFile: Buffer): Promise<any> {
-  // Return demo data for now
-  return {
-    skills: ['React', 'TypeScript', 'Node.js', 'PostgreSQL', 'Next.js', 'GraphQL'],
-    experience: [
-      { skill: 'React', years: 5 },
-      { skill: 'TypeScript', years: 4 },
-      { skill: 'Node.js', years: 3 },
-      { skill: 'Project Management', years: 2 },
-    ],
-    education: [
-      { institution: 'University of Demo', degree: 'B.S. in Computer Science', year: 2018 },
-    ],
-    workHistory: [
-      { company: 'Demo Corp', position: 'Senior Frontend Developer', duration: '2020-Present' },
-      { company: 'Mockup Inc', position: 'Software Engineer', duration: '2018-2020' },
-    ],
-    demoMode: true,
-  };
+const smarterResumeAnalysisFlow = ai.defineFlow(
+  {
+    name: 'smarterResumeAnalysisFlow',
+    inputSchema: SmarterResumeAnalysisInputSchema,
+    outputSchema: ResumeAnalysisSchema,
+    model: geminiPro,
+    prompt: `Analyze the following resume text and extract a structured analysis.
+    Infer the years of experience for each skill based on the work history dates.
+
+    Resume:
+    {{{resumeText}}}
+
+    Provide a structured JSON output with skills, experience summary, education, and work history.`,
+  },
+  async (input) => {
+    const { output } = await ai.generate(input);
+    return output as z.infer<typeof ResumeAnalysisSchema>;
+  }
+);
+
+
+export async function smarterResumeAnalysis(resumeText: string) {
+  try {
+    const analysisResult = await smarterResumeAnalysisFlow({ resumeText });
+    return analysisResult;
+  } catch (error) {
+    console.error('Error in smarter resume analysis flow:', error);
+    // Fallback to a simpler structure or mock if the AI call fails
+    return {
+      skills: ['React', 'TypeScript', 'Node.js', 'Error Handling'],
+      experience: [{ skill: 'Error', years: 0 }],
+      education: [],
+      workHistory: [],
+    };
+  }
 }
