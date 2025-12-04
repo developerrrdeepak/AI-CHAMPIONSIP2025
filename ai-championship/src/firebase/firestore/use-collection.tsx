@@ -78,8 +78,10 @@ export function useCollection<T = any>(
       memoizedTargetRefOrQuery,
       (snapshot: QuerySnapshot<DocumentData>) => {
         const results: ResultItemType[] = [];
-        for (const doc of snapshot.docs) {
-          results.push({ ...(doc.data() as T), id: doc.id });
+        if (snapshot && snapshot.docs) {
+          for (const doc of snapshot.docs) {
+            results.push({ ...(doc.data() as T), id: doc.id });
+          }
         }
         setData(results);
         setError(null);
