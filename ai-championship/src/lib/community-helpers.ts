@@ -1,8 +1,9 @@
+
 'use client';
 
 import { collection, addDoc, query, orderBy, onSnapshot, doc, updateDoc, increment, arrayUnion, arrayRemove, Timestamp, getDocs, where } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { sendAIMessage } from './ai-chat'; // Import the AI chat helper
+import { sendAIMessage, AI_CONTEXTS } from './ai-chat';
 
 export async function createPost(firestore: any, storage: any, userId: string, userName: string, userAvatar: string, content: string, imageFile: File | null) {
   let imageUrl = null;
@@ -15,7 +16,7 @@ export async function createPost(firestore: any, storage: any, userId: string, u
 
   // AI-powered content analysis for hashtags
   const aiPrompt = `Analyze the following post content and suggest 3-5 relevant hashtags. Return ONLY a comma-separated list of hashtags (e.g., #react,#typescript,#webdev):\n\n${content}`;
-  const hashtagString = await sendAIMessage(aiPrompt, 'community_assistant');
+  const hashtagString = await sendAIMessage(aiPrompt, AI_CONTEXTS.COMMUNITY);
   const hashtags = hashtagString.split(',').map(h => h.trim()).filter(Boolean);
 
   await addDoc(collection(firestore, 'posts'), {
@@ -65,7 +66,10 @@ export async function getFollowingPosts(firestore: any, userId: string, callback
 
 export async function toggleLike(firestore: any, postId: string, userId: string) {
   const postRef = doc(firestore, 'posts', postId);
-  const post = (await getDocs(query(collection(firestore, 'posts'), where('__name__', '==', postId)))).docs[0].data();
+  const postSnap = await getDoc(postRef);
+  if (!postSnap.exists()) return;
+  
+  const post = postSnap.data();
   const isLiked = post.likes.includes(userId);
 
   await updateDoc(postRef, {
@@ -83,4 +87,14 @@ export async function addComment(firestore: any, postId: string, userId: string,
       createdAt: Timestamp.now()
     })
   });
+}
+
+export async function getAIConnectionSuggestion(candidateProfile: any) {
+    const prompt = `Based on this candidate's profile, generate a personalized, short (1-2 sentences) icebreaker message for a recruiter to send:\n\nProfile: ${JSON.stringify(candidateProfile)}`;
+    return await sendAIMessage(prompt, AI_CONTEXTS.RECRUITMENT);
+}
+
+export async function getAIConnectionSummary(profile1: any, profile2: any) {
+    const prompt = `Briefly summarize why these two professionals might be a good connection:\n\nProfile 1: ${JSON.stringify(profile1)}\n\nProfile 2: ${JSON.stringify(profile2)}`;
+    return await sendAIMessage(prompt, AI_CONTEXTS.GENERAL);
 }

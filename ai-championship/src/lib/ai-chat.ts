@@ -1,3 +1,4 @@
+
 // Universal AI Chat Helper - Works for all user types
 export async function sendAIMessage(message: string, context?: string): Promise<string> {
   try {
@@ -27,5 +28,6 @@ export const AI_CONTEXTS = {
   RECRUITMENT: 'recruitment_assistant',
   CANDIDATE: 'candidate_assistant', 
   INTERVIEW: 'interview_assistant',
-  GENERAL: 'general_assistant'
+  GENERAL: 'general_assistant',
+  COMMUNITY: 'community_assistant'
 };
