@@ -74,7 +74,10 @@ export function useCollection<T = any>(
     setIsLoading(true);
     setError(null);
 
-    const unsubscribe = onSnapshot(
+    let unsubscribe: (() => void) | undefined;
+    
+    try {
+      unsubscribe = onSnapshot(
       memoizedTargetRefOrQuery,
       (snapshot: QuerySnapshot<DocumentData>) => {
         const results: ResultItemType[] = snapshot.docs.map(doc => ({
@@ -104,8 +107,16 @@ export function useCollection<T = any>(
         errorEmitter.emit('permission-error', contextualError);
       }
     );
+    } catch (err) {
+      console.error('Failed to setup onSnapshot:', err);
+      setError(err as Error);
+      setIsLoading(false);
+      setData(null);
+    }
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [memoizedTargetRefOrQuery]);
 
   // Runtime check to enforce memoization, crucial for preventing infinite loops
