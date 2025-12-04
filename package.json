@@ -1,4 +1,10 @@
 {
+  "name": "hirevision-root",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "ai-championship"
+  ],
   "scripts": {
     "build": "cd ai-championship && npm install && npm run build"
   },

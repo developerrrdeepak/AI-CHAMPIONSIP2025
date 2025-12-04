@@ -1,3 +1,4 @@
+
 {
   "name": "ai-championship-hirevision",
   "version": "1.0.0",
@@ -107,7 +108,7 @@
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
     "@types/bcryptjs": "^2.4.6",
-    "@types/jest": "^2.5.11",
+    "@types/jest": "^29.5.11",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^20",
     "@types/pg": "^8.11.0",
