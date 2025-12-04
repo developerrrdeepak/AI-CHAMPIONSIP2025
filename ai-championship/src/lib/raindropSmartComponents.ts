@@ -7,13 +7,14 @@ import {
   smartBucketsDownload,
 } from './raindropClient';
 
-export async function executeSmartSQL(queryString: string) {
+export async function executeSmartSQL(queryString: string, params?: any[]) {
   try {
-    const result = await smartSQLQuery(queryString);
+    const result = await smartSQLQuery(queryString, params);
     return result;
   } catch (error) {
     console.error('SmartSQL query error:', error);
-    throw error;
+    // In a real app, you might want more sophisticated error handling or fallbacks
+    return { rows: [] };
   }
 }
 

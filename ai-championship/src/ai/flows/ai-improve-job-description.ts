@@ -32,11 +32,17 @@ const prompt = ai.definePrompt({
   input: {schema: AIImproveJobDescriptionInputSchema},
   output: {schema: AIImproveJobDescriptionOutputSchema},
   model: geminiPro,
-  prompt: `You are an expert at writing job descriptions that attract high-quality candidates.
+  prompt: `You are an expert at writing compelling and inclusive job descriptions that attract top-tier, diverse candidates.
 
-  Please review the following job description and suggest improvements to make it more appealing to potential applicants.
+  Please review the following job description and rewrite it to be more engaging, clear, and appealing. Focus on:
+  - Using inclusive language.
+  - Highlighting the company culture and impact of the role.
+  - Clearly defining responsibilities and qualifications.
+  - Making it exciting for potential applicants.
 
-  Job Description: {{{jobDescription}}}`,
+  Job Description: {{{jobDescription}}}
+
+  Return only the rewritten, improved job description.`,
 });
 
 const aiImproveJobDescriptionFlow = ai.defineFlow(

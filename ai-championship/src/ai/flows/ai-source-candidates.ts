@@ -11,12 +11,14 @@
 import { ai, geminiPro } from '@/ai/genkit';
 import { z } from 'genkit';
 
-const CandidateProfileSchema = z.object({
+export const CandidateProfileSchema = z.object({
   name: z.string().describe('Full name of the candidate'),
   profileUrl: z.string().url().describe('URL of the candidate’s professional profile (e.g., LinkedIn, GitHub)'),
   summary: z.string().describe('A brief summary of the candidate’s skills and experience relevant to the job'),
   location: z.string().optional().describe('The candidate’s current location'),
 });
+export type CandidateProfile = z.infer<typeof CandidateProfileSchema>;
+
 
 const AISourceCandidatesInputSchema = z.object({
   jobDescription: z.string().describe('The job description to source candidates for'),
@@ -28,8 +30,10 @@ const AISourceCandidatesOutputSchema = z.object({
 });
 export type AISourceCandidatesOutput = z.infer<typeof AISourceCandidatesOutputSchema>;
 
-export async function aiSourceCandidates(input: AISourceCandidatesInput): Promise<AISourceCandidatesOutput> {
-  return aiSourceCandidatesFlow(input);
+export async function sourceCandidatesFlow(jobDescription: string): Promise<CandidateProfile[]> {
+    const input = { jobDescription };
+    const result = await aiSourceCandidatesFlow(input);
+    return result.candidates;
 }
 
 const prompt = ai.definePrompt({
@@ -37,13 +41,13 @@ const prompt = ai.definePrompt({
   input: { schema: AISourceCandidatesInputSchema },
   output: { schema: AISourceCandidatesOutputSchema },
   model: geminiPro,
-  prompt: `You are an expert technical recruiter. Your task is to find the best possible candidates for the following job description.
+  prompt: `You are an expert technical recruiter with access to a vast network of professional profiles. Your task is to find the best possible candidates for the following job description.
 Search public platforms like LinkedIn, GitHub, and technical communities for suitable candidates.
 
 Job Description:
 {{{jobDescription}}}
 
-Based on your search, provide a list of at least 5 potential candidates who appear to be a strong match.
+Based on your search, provide a list of 3-5 potential candidates who appear to be a strong match.
 For each candidate, return their full name, a URL to their professional profile, a brief summary of their relevant skills and experience, and their location if available.`,
 });
 

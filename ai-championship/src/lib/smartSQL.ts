@@ -8,11 +8,11 @@ export async function getCandidatesByOrganization(organizationId: string) {
       WHERE organization_id = $1
       ORDER BY created_at DESC
     `;
-    const result = await executeSmartSQL(query);
-    return result;
+    const result = await executeSmartSQL(query, [organizationId]);
+    return result.rows || [];
   } catch (error) {
     console.error('Error fetching candidates:', error);
-    throw error;
+    return [];
   }
 }
 
@@ -24,11 +24,11 @@ export async function getJobsByOrganization(organizationId: string) {
       WHERE organization_id = $1 AND status = 'active'
       ORDER BY created_at DESC
     `;
-    const result = await executeSmartSQL(query);
-    return result;
+    const result = await executeSmartSQL(query, [organizationId]);
+    return result.rows || [];
   } catch (error) {
     console.error('Error fetching jobs:', error);
-    throw error;
+    return [];
   }
 }
 
@@ -54,8 +54,8 @@ export async function createCandidateRecord(candidateData: {
       candidateData.experienceYears,
       candidateData.currentRole,
     ];
-    const result = await executeSmartSQL(query);
-    return result;
+    const result = await executeSmartSQL(query, params);
+    return result.rows?.[0] || null;
   } catch (error) {
     console.error('Error creating candidate:', error);
     throw error;
@@ -70,18 +70,18 @@ export async function getApplicationsByCandidate(candidateId: string) {
       WHERE candidate_id = $1
       ORDER BY applied_at DESC
     `;
-    const result = await executeSmartSQL(query);
-    return result;
+    const result = await executeSmartSQL(query, [candidateId]);
+    return result.rows || [];
   } catch (error) {
     console.error('Error fetching applications:', error);
-    throw error;
+    return [];
   }
 }
 
 export async function updateCandidateProfile(candidateId: string, updates: any) {
   try {
     const updateFields = Object.keys(updates)
-      .map((key, index) => `${key} = $${index + 2}`)
+      .map((key, index) => `"${key}" = $${index + 2}`)
       .join(', ');
     const query = `
       UPDATE candidates
@@ -90,8 +90,8 @@ export async function updateCandidateProfile(candidateId: string, updates: any) 
       RETURNING *
     `;
     const params = [candidateId, ...Object.values(updates)];
-    const result = await executeSmartSQL(query);
-    return result;
+    const result = await executeSmartSQL(query, params);
+    return result.rows?.[0] || null;
   } catch (error) {
     console.error('Error updating candidate:', error);
     throw error;
@@ -109,28 +109,28 @@ export async function getJobWithApplications(jobId: string) {
       WHERE j.id = $1
       GROUP BY j.id
     `;
-    const result = await executeSmartSQL(query);
-    return result;
+    const result = await executeSmartSQL(query, [jobId]);
+    return result.rows?.[0] || null;
   } catch (error) {
     console.error('Error fetching job with applications:', error);
-    throw error;
+    return null;
   }
 }
 
 export async function searchCandidatesBySkills(organizationId: string, skills: string[]) {
   try {
-    const skillsStr = skills.map(s => `'${s}'`).join(',');
+    const skillsParam = `{${skills.join(',')}}`;
     const query = `
       SELECT id, name, email, skills, experience_years, current_role
       FROM candidates
-      WHERE organization_id = $1 AND skills && ARRAY[${skillsStr}]
+      WHERE organization_id = $1 AND skills @> $2
       ORDER BY experience_years DESC
     `;
-    const result = await executeSmartSQL(query);
-    return result;
+    const result = await executeSmartSQL(query, [organizationId, skillsParam]);
+    return result.rows || [];
   } catch (error) {
     console.error('Error searching candidates:', error);
-    throw error;
+    return [];
   }
 }
 
@@ -147,10 +147,10 @@ export async function getMatchedCandidatesForJob(jobId: string, limit: number = 
       ORDER BY experience_years DESC, application_count DESC
       LIMIT $2
     `;
-    const result = await executeSmartSQL(query);
-    return result;
+    const result = await executeSmartSQL(query, [jobId, limit]);
+    return result.rows || [];
   } catch (error) {
     console.error('Error fetching matched candidates:', error);
-    throw error;
+    return [];
   }
 }
