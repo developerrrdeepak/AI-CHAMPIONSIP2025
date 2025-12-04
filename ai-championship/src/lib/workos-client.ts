@@ -1,3 +1,4 @@
+
 'use client';
 
 // WorkOS Authentication Client
