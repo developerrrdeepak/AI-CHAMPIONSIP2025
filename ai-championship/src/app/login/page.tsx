@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useFirebase, FirebaseClientProvider } from "@/firebase";
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getAdditionalUserInfo } from "firebase/auth";
+import { workosClient } from "@/lib/workos-client";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Briefcase, GraduationCap, AlertCircle } from "lucide-react";
@@ -166,6 +167,11 @@ function LoginForm({ userType, onBack }: { userType: 'candidate' | 'employer', o
         setIsLoading(false);
     }
 
+    const onWorkOSClick = () => {
+        const authUrl = workosClient.getAuthorizationUrl('google');
+        window.location.href = authUrl;
+    }
+
     const title = userType === 'employer' ? 'Employer Sign In' : 'Candidate Sign In';
     const description = userType === 'employer' ? "Access your employer dashboard." : "Access your candidate portal.";
 
@@ -175,11 +181,15 @@ function LoginForm({ userType, onBack }: { userType: 'candidate' | 'employer', o
                 <CardTitle className="text-2xl">{title}</CardTitle>
                 <CardDescription>{description}</CardDescription>
             </CardHeader>
-             <Button variant="outline" className="w-full relative overflow-hidden group" onClick={onGoogleClick} disabled={isLoading}>
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-purple-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin relative z-10" /> : <GoogleLogo className="mr-2 h-4 w-4 relative z-10" />}
-                <span className="relative z-10">Continue with Google</span>
-            </Button>
+            <div className="space-y-2">
+                <Button variant="outline" className="w-full" onClick={onWorkOSClick} disabled={isLoading}>
+                    Continue with WorkOS SSO
+                </Button>
+                <Button variant="outline" className="w-full" onClick={onGoogleClick} disabled={isLoading}>
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleLogo className="mr-2 h-4 w-4" />}
+                    Continue with Google
+                </Button>
+            </div>
             
             <div className="my-4 flex items-center">
                 <div className="flex-grow border-t border-muted"></div>
