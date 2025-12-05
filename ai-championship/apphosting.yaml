@@ -1,2 +1,18 @@
-runConfig:
-  runtime: nodejs18
+# See https://firebase.google.com/docs/hosting/frameworks/nextjs
+# Used by `firebase apphosting:backends:create`
+bundle: true
+env:
+  - variable: NEXT_PUBLIC_FIREBASE_API_KEY
+    value: AIzaSyAmUbAHWhTTJkW3hdmzUeZztv543A0spwI
+  - variable: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
+    value: studio-1555095820-f32c6.firebaseapp.com
+  - variable: NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    value: studio-1555095820-f32c6
+  - variable: NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    value: studio-1555095820-f32c6.appspot.com
+  - variable: NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
+    value: "817114304956"
+  - variable: NEXT_PUBLIC_FIREBASE_APP_ID
+    value: 1:817114304956:web:1ef19d0764035173551bb9
+  - variable: GOOGLE_GEMINI_API_KEY
+    value: AIzaSyBfjgmXQDscSsgFVsypZVQOxdWXIjMyuZ8
