@@ -18,7 +18,7 @@ export function UniversalAIChat() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'नमस्ते! मैं आपका Universal AI Assistant हूं। मुझसे कुछ भी पूछें - कोई भी सवाल, कोई भी टॉपिक। मैं हर सवाल का जवाब दूंगा! 🚀',
+      content: 'नमस्ते! मैं आपका Universal AI Mentor हूं। मुझसे कुछ भी पूछें - कोई भी सवाल, कोई भी टॉपिक। मैं हर सवाल का जवाब दूंगा! 🚀',
       timestamp: new Date(),
       suggestions: [
         'Code analyze करो',
@@ -125,7 +125,7 @@ export function UniversalAIChat() {
         <div className="flex items-center justify-between border-b pb-3">
           <div className="flex items-center gap-2">
             <Sparkles className="w-6 h-6 text-purple-500" />
-            <h2 className="text-xl font-bold">Universal AI Assistant</h2>
+            <h2 className="text-xl font-bold">Universal AI Mentor</h2>
           </div>
           <div className="flex gap-2">
             <Button
@@ -186,7 +186,7 @@ export function UniversalAIChat() {
                 )}
               </div>
             </div>
-          ))}
+          ))}\
           {loading && (
             <div className="flex justify-start">
               <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3">

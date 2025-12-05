@@ -10,6 +10,10 @@
   },
   "dependencies": {
     "@dataconnect/generated": "file:src/dataconnect-generated",
-    "@vultr/vultr-node": "^2.8.0"
+    "@vultr/vultr-node": "^2.8.0",
+    "pdf-parse": "^2.4.5"
+  },
+  "devDependencies": {
+    "@types/pdf-parse": "^1.1.5"
   }
 }

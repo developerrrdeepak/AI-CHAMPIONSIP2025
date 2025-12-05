@@ -3,6 +3,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
+import * as pdf from 'pdf-parse';
 
 interface ResumeAnalysis {
   skills: string[];
@@ -17,7 +18,7 @@ function AnalysisSkeleton() {
         <div className="space-y-4">
             <Skeleton className="h-8 w-1/4" />
             <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-8 w-1/4" />
+            <Skeleton className="h-8 w-1/fouro" />
             <Skeleton className="h-32 w-full" />
         </div>
     );
@@ -37,10 +38,22 @@ export function CandidateSmarterResumeAnalysisTab({ candidateId, resumePath }: {
       };
       try {
         setIsLoading(true);
+
+        // Fetch the resume file
+        const resumeResponse = await fetch(resumePath);
+        if (!resumeResponse.ok) {
+          throw new Error('Failed to fetch resume file');
+        }
+        const resumeBuffer = await resumeResponse.arrayBuffer();
+
+        // Extract text from the PDF
+        const pdfData = await pdf(resumeBuffer);
+        const resumeText = pdfData.text;
+
         const response = await fetch('/api/ai/smarter-resume-analysis', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ resumePath }),
+          body: JSON.stringify({ resumeText }),
         });
         if (!response.ok) {
           throw new Error('Failed to fetch analysis');

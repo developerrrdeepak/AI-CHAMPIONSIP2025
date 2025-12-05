@@ -18,9 +18,9 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useAuth } from "@/firebase/client-provider";
-import { createJob } from "@/lib/firestore-service";
-import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/firebase/provider";
+import { createJob } from "@/lib/new-job";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   title: z.string().min(2, {
