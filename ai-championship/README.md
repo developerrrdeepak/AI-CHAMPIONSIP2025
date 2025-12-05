@@ -1,164 +1,124 @@
-# HireVision AI - AI-Powered Recruitment Platform
+# HireVision - AI-Powered Recruitment Platform
 
-[![Built for AI Championship](https://img.shields.io/badge/AI%20Championship-2025-blue)](https://aichampionship.dev)
-[![Next.js](https://img.shields.io/badge/Next.js-15+-black)](https://nextjs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue)](https://www.typescriptlang.org/)
+Modern recruitment platform with AI-powered candidate matching, interview automation, and smart hiring tools.
 
-> **AI Championship Hackathon Submission** - Empowering small teams to compete with enterprise hiring through AI automation.
+## 🚀 Features
 
-## 🚀 The Problem
+### Core Features
+- 🔐 Firebase Authentication (Email/Password, Google Sign-in)
+- 💼 Job Management (Create, Edit, Search)
+- 👥 Candidate Management & Search
+- 📝 Application Pipeline
+- 📅 Interview Scheduling
+- 💬 Real-time Messaging
+- 🌐 Community Feed
 
-Small startups and teams struggle to compete with large companies in hiring top talent. Manual resume screening, scheduling interviews, and candidate evaluation consume valuable time that could be spent building products.
-
-## 💡 The Solution
-
-HireVision AI is an intelligent recruitment platform that acts as a force multiplier for small teams, automating the entire hiring pipeline with AI-powered matching, voice interviews, and real-time analytics.
-
-## ✨ Key Features
-
-### 🤖 AI-Powered Candidate Matching
-- Smart resume analysis using Google Gemini AI
-- Automated skill extraction and compatibility scoring
-- Culture fit assessment with AI insights
-
-### 🎙️ Voice Interview Automation
-- ElevenLabs-powered voice interviews
-- Natural conversation flow
-- Automated transcription and analysis
-
-### 📊 Real-Time Analytics
-- Hiring pipeline visualization
-- Candidate ranking and insights
-- Performance metrics dashboard
-
-### 🔐 Enterprise-Grade Security
-- Firebase Authentication
-- Role-based access control
-- Data encryption and audit logging
+### AI Features
+- 🤖 AI Resume Analysis (Gemini)
+- 📊 Candidate Ranking & Scoring
+- ✍️ Job Description Improvement
+- ❓ Interview Questions Generator
+- 🎤 AI Voice Interviewer
+- 💡 Smart Insights & Recommendations
 
 ## 🛠️ Tech Stack
 
-### Core Technologies
-- **Frontend:** Next.js 15, TypeScript, Tailwind CSS, Radix UI
-- **Backend:** Next.js API Routes, Firebase Admin SDK
-- **Database:** Vultr PostgreSQL, Firebase Firestore
-- **Storage:** Vultr Object Storage (S3-compatible)
-
-### AI & ML Integration
-- **Raindrop Platform:** SmartSQL, SmartMemory, SmartInference, SmartBuckets
-- **Google Gemini AI:** Resume analysis and candidate matching
-- **ElevenLabs:** Text-to-speech for voice interviews
-
-### Infrastructure
-- **Vultr Services:** PostgreSQL Database, Object Storage
+- **Framework:** Next.js 14
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS
+- **Database:** Firebase Firestore
+- **Auth:** Firebase Auth
+- **Storage:** Firebase Storage, Vultr S3
+- **AI:** Google Gemini, ElevenLabs
 - **Deployment:** Netlify
-- **Authentication:** Firebase Auth
 
-## 🏆 AI Championship Integration
-
-### Raindrop Smart Components
-- ✅ **SmartSQL:** Candidate and job data queries
-- ✅ **SmartMemory:** User preferences and interview feedback storage
-- ✅ **SmartInference:** AI-powered candidate analysis
-- ✅ **SmartBuckets:** Resume and document storage via Vultr
-
-### Vultr Services
-- ✅ **PostgreSQL Database:** Production data storage
-- ✅ **Object Storage:** Resume and file management (S3-compatible)
-- ✅ **API Integration:** Compute resource management
-
-### ElevenLabs Voice AI
-- ✅ Voice interview generation
-- ✅ Natural speech synthesis
-- ✅ Multi-language support
-
-## 🚦 Getting Started
-
-### Prerequisites
-- Node.js 18+
-- Firebase project
-- API keys for: Raindrop, Vultr, ElevenLabs, Google Gemini
-
-### Installation
+## 📦 Installation
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/hirevision-ai.git
-cd hirevision-ai/ai-championship
+git clone https://github.com/developerrrdeepak/AI-CHAMPIONSIP2025.git
+cd AI-CHAMPIONSIP2025/ai-championship
 
 # Install dependencies
 npm install
 
-# Configure environment variables
+# Setup environment variables
 cp .env.example .env.local
-# Add your API keys to .env.local
+# Add your API keys
 
 # Run development server
 npm run dev
 ```
 
-Visit [http://localhost:9002](http://localhost:9002)
+## 🔑 Environment Variables
 
-## 📁 Project Structure
+```env
+# Firebase
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
 
+# Google AI
+GOOGLE_GENAI_API_KEY=
+
+# ElevenLabs (Voice)
+ELEVENLABS_API_KEY=
+ELEVENLABS_VOICE_ID=
+NEXT_PUBLIC_ELEVENLABS_VOICE_ID=
+
+# Vultr (Storage & Database)
+VULTR_API_KEY=
+VULTR_S3_ACCESS_KEY=
+VULTR_S3_SECRET_KEY=
+VULTR_S3_ENDPOINT=
+VULTR_S3_REGION=
+VULTR_POSTGRES_CONNECTION_STRING=
+
+# WorkOS (Enterprise Auth)
+WORKOS_API_KEY=
+WORKOS_CLIENT_ID=
+NEXT_PUBLIC_WORKOS_CLIENT_ID=
+WORKOS_REDIRECT_URI=
+
+# App Config
+NEXT_PUBLIC_APP_URL=
 ```
-src/
-├── app/                    # Next.js App Router
-│   ├── (app)/             # Protected routes
-│   └── api/               # API endpoints
-├── components/            # React components
-├── lib/                   # Utilities & integrations
-│   ├── raindropClient.ts  # Raindrop MCP integration
-│   ├── vultr-client.ts    # Vultr services
-│   └── elevenlabs.ts      # Voice AI
-└── ai/                    # AI flows & logic
+
+## 🚀 Deployment
+
+### Netlify
+1. Connect GitHub repository
+2. Set build command: `cd ai-championship && npm install && npm run build`
+3. Set publish directory: `ai-championship/.next`
+4. Add environment variables
+5. Deploy
+
+## 📝 Scripts
+
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run start        # Start production server
+npm run lint         # Run ESLint
+npm run format       # Format code with Prettier
 ```
 
-## 🎯 Target Categories
+## 🤝 Contributing
 
-- 🏆 **Best Overall Idea**
-- 🎯 **Best Small Startup Agents** (Primary)
-- 🎙️ **Best Voice Agent**
-- 💡 **Best AI App by a Solopreneur**
+Contributions welcome! Please open an issue or submit a pull request.
 
-## 🌟 Why HireVision Wins
+## 📄 License
 
-1. **Real Problem, Real Solution:** Addresses actual pain point for small teams
-2. **Complete Integration:** Uses all required technologies (Raindrop, Vultr, ElevenLabs)
-3. **Production Ready:** Authentication, security, scalability built-in
-4. **Force Multiplier:** Reduces hiring time by 70%, enables small teams to compete
+MIT License - see LICENSE file for details
 
-## 📊 Impact Metrics
+## 👨‍💻 Author
 
-- ⚡ **70% faster** candidate screening
-- 🎯 **85% accuracy** in skill matching
-- 💰 **60% cost reduction** vs traditional recruiting
-- 🚀 **10x productivity** for small hiring teams
+Deepak Kumar
 
-## 🔒 Security & Compliance
+## 🔗 Links
 
-- End-to-end encryption
-- GDPR compliant data handling
-- SOC 2 ready architecture
-- Regular security audits
-
-## 📝 License
-
-MIT License - Open source for the community
-
-## 🙏 Acknowledgments
-
-Built for **AI Championship 2025** by LiquidMetal AI
-
-**Powered by:**
-- LiquidMetal AI Raindrop Platform
-- Vultr Cloud Infrastructure
-- ElevenLabs Voice AI
-- Google Gemini AI
-- Netlify Deployment
-
----
-
-**🏆 AI Championship 2025 Submission**
-
-*Empowering small teams to hire like enterprises through AI automation*
+- [Live Demo](https://darling-strudel-d604e0.netlify.app)
+- [GitHub](https://github.com/developerrrdeepak/AI-CHAMPIONSIP2025)
