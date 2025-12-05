@@ -4,6 +4,11 @@
 
 [build.environment]
   NODE_VERSION = "20"
+  NEXT_PRIVATE_TARGET = "server"
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["@next/swc-linux-x64-gnu", "@next/swc-linux-x64-musl"]
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
