@@ -1,58 +1,44 @@
-'use server';
-
-/**
- * @fileOverview An AI agent that improves job descriptions.
- *
- * - aiImproveJobDescription - A function that suggests improvements to a job description.
- * - AIImproveJobDescriptionInput - The input type for the aiImproveJobDescription function.
- * - AIImproveJobDescriptionOutput - The return type for the aiImproveJobDescription function.
- */
-
-import {ai, geminiPro} from '@/ai/genkit';
-import {z} from 'genkit';
+import { geminiPro } from '@/ai/genkit';
+import { z } from 'zod';
 
 const AIImproveJobDescriptionInputSchema = z.object({
-  jobDescription: z
-    .string()
-    .describe('The job description to improve.'),
+  jobDescription: z.string().describe('The job description to improve.'),
 });
+
 export type AIImproveJobDescriptionInput = z.infer<typeof AIImproveJobDescriptionInputSchema>;
 
 const AIImproveJobDescriptionOutputSchema = z.object({
   improvedJobDescription: z.string().describe('The improved job description.'),
 });
+
 export type AIImproveJobDescriptionOutput = z.infer<typeof AIImproveJobDescriptionOutputSchema>;
 
 export async function aiImproveJobDescription(input: AIImproveJobDescriptionInput): Promise<AIImproveJobDescriptionOutput> {
-  return aiImproveJobDescriptionFlow(input);
-}
+  try {
+    const prompt = `You are an expert at writing compelling and inclusive job descriptions that attract top-tier, diverse candidates.
 
-const prompt = ai.definePrompt({
-  name: 'aiImproveJobDescriptionPrompt',
-  input: {schema: AIImproveJobDescriptionInputSchema},
-  output: {schema: AIImproveJobDescriptionOutputSchema},
-  model: geminiPro,
-  prompt: `You are an expert at writing compelling and inclusive job descriptions that attract top-tier, diverse candidates.
+Please review the following job description and rewrite it to be more engaging, clear, and appealing. Focus on:
+- Using inclusive language.
+- Highlighting the company culture and impact of the role.
+- Clearly defining responsibilities and qualifications.
+- Making it exciting for potential applicants.
 
-  Please review the following job description and rewrite it to be more engaging, clear, and appealing. Focus on:
-  - Using inclusive language.
-  - Highlighting the company culture and impact of the role.
-  - Clearly defining responsibilities and qualifications.
-  - Making it exciting for potential applicants.
+Job Description:
+${input.jobDescription}
 
-  Job Description: {{{jobDescription}}}
+Return ONLY the improved job description text, no JSON, no markdown formatting.`;
 
-  Return only the rewritten, improved job description.`,
-});
-
-const aiImproveJobDescriptionFlow = ai.defineFlow(
-  {
-    name: 'aiImproveJobDescriptionFlow',
-    inputSchema: AIImproveJobDescriptionInputSchema,
-    outputSchema: AIImproveJobDescriptionOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
+    const result = await geminiPro.generateContent(prompt);
+    const response = await result.response;
+    const improvedText = response.text().trim();
+    
+    return {
+      improvedJobDescription: improvedText
+    };
+  } catch (error) {
+    console.error('Error improving job description:', error);
+    return {
+      improvedJobDescription: input.jobDescription
+    };
   }
-);
+}

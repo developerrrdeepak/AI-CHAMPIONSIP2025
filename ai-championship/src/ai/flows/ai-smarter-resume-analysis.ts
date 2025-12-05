@@ -23,25 +23,33 @@ const SmarterResumeAnalysisInputSchema = z.object({
   resumeText: z.string().describe("The full text of the resume to analyze."),
 });
 
-const smarterResumeAnalysisFlow = ai.defineFlow(
-  {
-    name: 'smarterResumeAnalysisFlow',
-    inputSchema: SmarterResumeAnalysisInputSchema,
-    outputSchema: ResumeAnalysisSchema,
-    model: geminiPro,
-    prompt: `Analyze the following resume text and extract a structured analysis.
-    Infer the years of experience for each skill based on the work history dates.
+const smarterResumeAnalysisFlow = async (input: z.infer<typeof SmarterResumeAnalysisInputSchema>) => {
+  const prompt = `Analyze the following resume text and extract a structured analysis.
+  Infer the years of experience for each skill based on the work history dates.
 
-    Resume:
-    {{{resumeText}}}
+  Resume:
+  ${input.resumeText}
 
-    Provide a structured JSON output with skills, experience summary, education, and work history.`,
-  },
-  async (input) => {
-    const { output } = await ai.generate(input);
-    return output as z.infer<typeof ResumeAnalysisSchema>;
+  Provide a structured JSON output with:
+  - skills: array of strings
+  - experience: array of {skill: string, years: number}
+  - education: array of {institution: string, degree: string, year?: number}
+  - workHistory: array of {company: string, position: string, duration: string}
+  
+  Return ONLY valid JSON, no markdown or extra text.`;
+
+  const result = await geminiPro.generateContent(prompt);
+  const response = await result.response;
+  const text = response.text();
+  
+  try {
+    const cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    return JSON.parse(cleaned) as z.infer<typeof ResumeAnalysisSchema>;
+  } catch (e) {
+    console.error('Failed to parse AI response:', e);
+    throw e;
   }
-);
+};
 
 
 export async function smarterResumeAnalysis(resumeText: string) {
