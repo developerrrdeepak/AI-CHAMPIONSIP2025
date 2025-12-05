@@ -59,21 +59,13 @@ export async function POST(request: NextRequest) {
     let aiResponseJson;
     try {
       // The model sometimes wraps JSON in markdown code blocks. Attempt to extract if wrapped.
-      const jsonMatch = text.match(/
-```
-json\s*([\s\S]*?)\s*
-```
-/);
+      const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
       let contentToParse = text;
       if (jsonMatch && jsonMatch[1]) {
         contentToParse = jsonMatch[1];
       } else {
-        // If not wrapped in 
-```
-json, try to clean other markdown code blocks or just trim
-        contentToParse = text.replace(/
-```
-(?:json)?\s*([\s\S]*?)\s*```/g, '$1').trim();
+        // If not wrapped in ```json, try to clean other markdown code blocks or just trim
+        contentToParse = text.replace(/```(?:json)?\s*([\s\S]*?)\s*```/g, '$1').trim();
       }
       aiResponseJson = JSON.parse(contentToParse);
     } catch (parseError) {
@@ -96,7 +88,6 @@ json, try to clean other markdown code blocks or just trim
         { status: 500 }
       );
     }
-
 
     return NextResponse.json({ success: true, ...aiResponseJson });
   } catch (error) {

@@ -1,16 +1,306 @@
-I will now overwrite the file `ai-championship/src/app/(app)/jobs/new/page.tsx` with the correct content you provided. This should definitively remove the syntax error from this file.
+"use client";
 
-My apologies. It appears there was an internal error in how I attempted to call the `write_file` tool. I will correct that and retry writing the content to `ai-championship/src/app/(app)/jobs/new/page.tsx` now.
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { ArrowLeftIcon, MagicWandIcon } from "@radix-ui/react-icons";
 
-It seems there's an ongoing internal `NameError` preventing me from successfully executing file operations, specifically `default_api.write_file`. This is an issue with my internal environment or how I'm invoking the tools, not a problem with your code.
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useAuth } from "@/firebase/client-provider";
+import { createJob } from "@/lib/firestore-service";
+import { toast } from "@/hooks/use-toast";
 
-Because of this internal error, I am currently unable to make further modifications to your files or perform commits. I cannot proceed with fixing the `code-analysis/route.ts` or with any other code changes until this internal `NameError` is resolved.
+const formSchema = z.object({
+  title: z.string().min(2, {
+    message: "Title must be at least 2 characters.",
+  }),
+  company: z.string().min(2, {
+    message: "Company must be at least 2 characters.",
+  }),
+  location: z.string().min(2, {
+    message: "Location must be at least 2 characters.",
+  }),
+  salaryRange: z.string().optional(),
+  description: z.string().min(10, {
+    message: "Description must be at least 10 characters.",
+  }),
+  requirements: z.string().optional(),
+  responsibilities: z.string().optional(),
+  skills: z.string().optional(),
+});
 
-I recommend that you manually:
+type JobFormValues = z.infer<typeof formSchema>;
 
-1.  **Correct `ai-championship/src/app/(app)/jobs/new/page.tsx`**: Ensure the file begins with `\"use client\";` and has the exact content you provided, with no extra lines or comments at the top.
-2.  **Correct `ai-championship/src/app/api/ai/code-analysis/route.ts`**: Verify that the regular expression and JSON parsing logic I provided earlier (which handles markdown code blocks) is correctly implemented in that file.
+export default function NewJobPage() {
+  const router = useRouter();
+  const { user } = useAuth();
+  const [isLoadingAI, setIsLoadingAI] = useState(false);
 
-Once these manual corrections are made in your repository, please try to **clear cache and redeploy on Netlify** again.
+  const form = useForm<JobFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: "",
+      company: "",
+      location: "",
+      salaryRange: "",
+      description: "",
+      requirements: "",
+      responsibilities: "",
+      skills: "",
+    },
+  });
 
-I apologize for this interruption due to my internal tooling issue. Please let me know once you've manually corrected the files and re-attempted deployment, and I will be ready to assist further with AI integrations or debugging your application logic.
+  async function onSubmit(values: JobFormValues) {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to create a job.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await createJob(user.uid, values);
+      toast({
+        title: "Job Created",
+        description: "Your new job has been successfully posted!",
+      });
+      router.push("/jobs");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create job. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error creating job:", error);
+    }
+  }
+
+  async function improveJobDescriptionWithAI() {
+    setIsLoadingAI(true);
+    try {
+      const currentDescription = form.getValues("description");
+      if (!currentDescription) {
+        toast({
+          title: "Input Required",
+          description: "Please enter a description to improve.",
+          variant: "destructive",
+        });
+        setIsLoadingAI(false);
+        return;
+      }
+
+      const response = await fetch("/api/ai/improve-job-description", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ jobDescription: currentDescription }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to improve job description with AI.");
+      }
+
+      const data = await response.json();
+      if (data.success && data.improvedDescription) {
+        form.setValue("description", data.improvedDescription);
+        toast({
+          title: "Description Improved",
+          description: "AI suggestions have been applied.",
+        });
+      } else {
+        toast({
+          title: "AI Improvement Failed",
+          description: data.error || "No improvements returned by AI.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error improving job description:", error);
+      toast({
+        title: "Error",
+        description: "Failed to get AI suggestions.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingAI(false);
+    }
+  }
+
+  return (
+    <div className="container mx-auto p-4">
+      <Button
+        variant="ghost"
+        onClick={() => router.back()}
+        className="mb-4 flex items-center gap-2"
+      >
+        <ArrowLeftIcon className="h-4 w-4" /> Back
+      </Button>
+      <h1 className="text-3xl font-bold mb-6">Create New Job Posting</h1>
+
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Job Title</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., Software Engineer" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="company"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Company</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., Google" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="location"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Location</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., Remote, New York, CA" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="salaryRange"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Salary Range (Optional)</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., $100,000 - $150,000" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Job Description</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Describe the role, responsibilities, and qualifications..."
+                    {...field}
+                    rows={8}
+                  />
+                </FormControl>
+                <FormMessage />
+                <Button
+                  type="button"
+                  onClick={improveJobDescriptionWithAI}
+                  disabled={isLoadingAI}
+                  className="mt-2"
+                >
+                  {isLoadingAI ? (
+                    "Improving..."
+                  ) : (
+                    <>
+                      <MagicWandIcon className="mr-2 h-4 w-4" /> Improve with AI
+                    </>
+                  )}
+                </Button>
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="requirements"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Requirements (Optional)</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="List required skills and experience..."
+                    {...field}
+                    rows={4}
+                  />
+                </FormControl>
+                <FormMessage />
+                {/* AI Suggest button for requirements could go here */}
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="responsibilities"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Responsibilities (Optional)</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Outline key duties and tasks..."
+                    {...field}
+                    rows={4}
+                  />
+                </FormControl>
+                <FormMessage />
+                {/* AI Suggest button for responsibilities could go here */}
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="skills"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Skills (Comma-separated, Optional)</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="e.g., JavaScript, React, Node.js, Firebase"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+                {/* AI Suggest button for skills could go here */}
+              </FormItem>
+            )}
+          />
+
+          <Button type="submit">Create Job</Button>
+        </form>
+      </Form>
+    </div>
+  );
+}
