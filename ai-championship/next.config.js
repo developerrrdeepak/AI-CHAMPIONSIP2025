@@ -1,9 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // output: 'standalone', // Disabled for Vercel deployment compatibility
-  experimental: {
-    esmExternals: 'loose',
-  },
+  outputFileTracingRoot: undefined,
   transpilePackages: ['date-fns', 'react-day-picker'],
   eslint: {
     ignoreDuringBuilds: true,
