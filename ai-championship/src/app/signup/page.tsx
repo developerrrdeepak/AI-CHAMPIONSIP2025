@@ -654,48 +654,144 @@ function EmployerSignupForm({ onBack }: { onBack: () => void }) {
 }
 
 function SignupPageContent() {
-  const [view, setView] = useState<'selection' | 'candidate' | 'employer'>('selection');
+  const [view, setView] = useState<'selection' | 'candidate' | 'employer' | 'onboarding'>('selection');
+  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null); // To store the role selected for onboarding
+  const [aiOnboardingContent, setAiOnboardingContent] = useState<{ welcomeMessage: string; suggestedActions: string[]; encouragement: string; } | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleRoleSelection = async (role: UserRole) => {
+    setSelectedRole(role);
+    setAiLoading(true);
+    setView('onboarding'); // Immediately switch to onboarding view to show loading
+
+    try {
+      const response = await fetch('/api/ai/onboarding-suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userRole: role === 'Owner' ? 'recruiter' : 'candidate' }), // Map 'Owner' to 'recruiter' for AI
+      });
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setAiOnboardingContent(data);
+      } else {
+        console.error('Failed to fetch AI onboarding suggestions:', data.error);
+        toast({
+          variant: "destructive",
+          title: "Onboarding Failed",
+          description: "Could not load personalized suggestions. Please try again.",
+        });
+        // Fallback to direct form if AI fails
+        setView(role === 'Candidate' ? 'candidate' : 'employer');
+      }
+    } catch (error) {
+      console.error('Error fetching AI onboarding suggestions:', error);
+      toast({
+        variant: "destructive",
+        title: "Onboarding Error",
+        description: "An unexpected error occurred during AI onboarding. Please try again.",
+      });
+      // Fallback to direct form if API call fails
+      setView(role === 'Candidate' ? 'candidate' : 'employer');
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   return (
     <div className="p-8 md:p-12 min-h-[580px]">
-      <div className={cn("transition-opacity duration-300", view === 'selection' ? 'animate-in fade-in-0' : 'opacity-0 h-0 overflow-hidden pointer-events-none')}>
-        <CardHeader className="text-center p-0">
+      {view === 'selection' && (
+        <div className={cn("transition-opacity duration-300", 'animate-in fade-in-0')}>
+          <CardHeader className="text-center p-0">
+              <Link href="/" className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                  <HireVisionLogo className="h-8 w-8" />
+              </Link>
+              <CardTitle className="text-2xl">Join HireVision</CardTitle>
+              <CardDescription>
+                  Are you looking for your next opportunity or hiring your next star?
+              </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 mt-8 p-0">
+              <Button variant="outline" size="lg" className="w-full justify-start h-auto p-4" onClick={() => handleRoleSelection('Candidate')} disabled={aiLoading}>
+                  <GraduationCap className="w-6 h-6 mr-4" />
+                  <div className="text-left">
+                      <p className="font-semibold">I'm a Candidate</p>
+                      <p className="text-xs text-muted-foreground">Find your dream job and grow your career.</p>
+                  </div>
+              </Button>
+              <Button variant="outline" size="lg" className="w-full justify-start h-auto p-4" onClick={() => handleRoleSelection('Owner')} disabled={aiLoading}>
+                  <Briefcase className="w-6 h-6 mr-4" />
+                  <div className="text-left">
+                      <p className="font-semibold">I'm an Employer</p>
+                      <p className="text-xs text-muted-foreground">Post jobs and manage candidates.</p>
+                  </div>
+              </Button>
+              <div className="mt-4 text-center text-sm">
+                  Already have an account?{" "}
+                  <Link href="/login" className="underline hover:text-primary">
+                      Sign In
+                  </Link>
+              </div>
+          </CardContent>
+        </div>
+      )}
+
+      {view === 'onboarding' && (
+        <div className="animate-in fade-in-50 slide-in-from-bottom-4 duration-500 text-center">
+          <CardHeader className="p-0 space-y-2 text-left mb-6 text-center">
             <Link href="/" className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <HireVisionLogo className="h-8 w-8" />
             </Link>
-            <CardTitle className="text-2xl">Join HireVision</CardTitle>
-            <CardDescription>
-                Are you looking for your next opportunity or hiring your next star?
-            </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 mt-8 p-0">
-            <Button variant="outline" size="lg" className="w-full justify-start h-auto p-4" onClick={() => setView('candidate')}>
-                <GraduationCap className="w-6 h-6 mr-4" />
-                <div className="text-left">
-                    <p className="font-semibold">I'm a Candidate</p>
-                    <p className="text-xs text-muted-foreground">Find your dream job and grow your career.</p>
+            {aiLoading ? (
+              <div className="flex flex-col items-center justify-center gap-4 py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <CardTitle className="text-2xl">Generating your personalized experience...</CardTitle>
+                <CardDescription>One moment while our AI tailors your journey.</CardDescription>
+              </div>
+            ) : aiOnboardingContent ? (
+              <>
+                <CardTitle className="text-2xl">{aiOnboardingContent.welcomeMessage}</CardTitle>
+                <CardDescription className="mt-4 text-left">
+                  <p className="font-semibold mb-2">Here are some suggested next steps:</p>
+                  <ul className="list-disc list-inside space-y-1">
+                    {aiOnboardingContent.suggestedActions.map((action, index) => (
+                      <li key={index}>{action}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-4">{aiOnboardingContent.encouragement}</p>
+                </CardDescription>
+                <Button 
+                    className="w-full mt-8" 
+                    onClick={() => setView(selectedRole === 'Candidate' ? 'candidate' : 'employer')}
+                >
+                    Continue to {selectedRole === 'Candidate' ? 'Candidate Signup' : 'Employer Signup'}
+                </Button>
+              </>
+            ) : (
+                // Fallback if AI content couldn't be loaded and didn't redirect earlier
+                <div className="flex flex-col items-center justify-center gap-4 py-8">
+                    <AlertCircle className="h-8 w-8 text-red-500" />
+                    <CardTitle className="text-2xl">Oops! Something went wrong.</CardTitle>
+                    <CardDescription>We couldn't load your personalized onboarding. Please proceed manually.</CardDescription>
+                    <Button 
+                        className="w-full mt-4" 
+                        onClick={() => setView(selectedRole === 'Candidate' ? 'candidate' : 'employer')}
+                    >
+                        Continue to {selectedRole === 'Candidate' ? 'Candidate Signup' : 'Employer Signup'}
+                    </Button>
                 </div>
-            </Button>
-            <Button variant="outline" size="lg" className="w-full justify-start h-auto p-4" onClick={() => setView('employer')}>
-                <Briefcase className="w-6 h-6 mr-4" />
-                <div className="text-left">
-                    <p className="font-semibold">I'm an Employer</p>
-                    <p className="text-xs text-muted-foreground">Post jobs and manage candidates.</p>
-                </div>
-            </Button>
-            <div className="mt-4 text-center text-sm">
-                Already have an account?{" "}
-                <Link href="/login" className="underline hover:text-primary">
-                    Sign In
-                </Link>
-            </div>
-        </CardContent>
-      </div>
+            )}
+          </CardHeader>
+        </div>
+      )}
 
-      <div className={cn(view !== 'selection' ? 'block' : 'hidden')}>
-        {view === 'candidate' && <CandidateSignupForm onBack={() => setView('selection')} />}
-        {view === 'employer' && <EmployerSignupForm onBack={() => setView('selection')} />}
-      </div>
+      {(view === 'candidate' || view === 'employer') && (
+        <div className={cn(view !== 'selection' && view !== 'onboarding' ? 'block' : 'hidden')}>
+            {view === 'candidate' && <CandidateSignupForm onBack={() => setView('selection')} />}
+            {view === 'employer' && <EmployerSignupForm onBack={() => setView('selection')} />}
+        </div>
+      )}
     </div>
   );
 }

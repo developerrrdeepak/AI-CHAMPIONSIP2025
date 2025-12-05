@@ -19,6 +19,7 @@ export function CreatePostModal({ open, onClose, onPost, user }: CreatePostModal
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [moderationWarning, setModerationWarning] = useState(false); // New state variable
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -28,10 +29,39 @@ export function CreatePostModal({ open, onClose, onPost, user }: CreatePostModal
     }
   };
 
+  // New asynchronous function for content moderation
+  const moderateContent = async (text: string): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/moderate-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text }),
+      });
+      const data = await response.json();
+      return data.isFlagged;
+    } catch (error) {
+      console.error('Error moderating content:', error);
+      // In case of an error, default to not flagged to allow posting, or handle as per policy
+      return false; 
+    }
+  };
+
   const handlePost = async () => {
     if (!content.trim()) return;
     setLoading(true);
+    setModerationWarning(false); // Reset warning before new moderation check
+
     try {
+      const isContentFlagged = await moderateContent(content);
+
+      if (isContentFlagged) {
+        setModerationWarning(true);
+        setLoading(false);
+        return; // Prevent post creation if flagged
+      }
+
       await onPost(content, imageFile);
       setContent('');
       setImageFile(null);
@@ -64,6 +94,11 @@ export function CreatePostModal({ open, onClose, onPost, user }: CreatePostModal
               />
             </div>
           </div>
+          {moderationWarning && ( // Conditionally render moderation warning
+            <p className="text-red-500 text-sm mb-4">
+              Your post contains content that violates our community guidelines and cannot be published.
+            </p>
+          )}
           {imagePreview && (
             <div className="relative">
               <img src={imagePreview} alt="Preview" className="w-full rounded-lg" />

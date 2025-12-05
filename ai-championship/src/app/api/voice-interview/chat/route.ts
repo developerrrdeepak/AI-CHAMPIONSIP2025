@@ -1,61 +1,115 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { geminiPro } from '@/ai/genkit';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+// import { geminiPro } from '@/ai/genkit'; // This import is no longer needed
+
+// Ensure the API key is loaded from environment variables
+const API_KEY = process.env.GOOGLE_GEMINI_API_KEY;
+
+if (!API_KEY) {
+  console.error('GOOGLE_GEMINI_API_KEY is not set.');
+}
+
+const genAI = new GoogleGenerativeAI(API_KEY || '');
 
 export async function POST(request: NextRequest) {
+  if (!API_KEY) {
+    return NextResponse.json(
+      { success: false, error: 'Server configuration error: Google Gemini API key is missing.' },
+      { status: 500 }
+    );
+  }
+
   try {
     const body = await request.json();
-    const { message, conversationHistory } = body;
+    const { messages, jobDescription } = body; // Changed from message, conversationHistory
 
-    if (!message || typeof message !== 'string') {
+    if (!Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'Message is required and must be a string' },
+        { success: false, error: 'Messages array is required and must not be empty' },
         { status: 400 }
       );
     }
 
-    if (!Array.isArray(conversationHistory)) {
+    if (typeof jobDescription !== 'string' || jobDescription.trim() === '') {
       return NextResponse.json(
-        { success: false, error: 'conversationHistory must be an array' },
+        { success: false, error: 'jobDescription is required and must be a non-empty string' },
         { status: 400 }
       );
     }
 
-    // Build conversation context
-    const context = conversationHistory
-      .map(msg => `${msg.role === 'user' ? 'Candidate' : 'Interviewer'}: ${msg.content}`)
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+
+    // Build conversation context for the AI
+    const conversationContext = messages
+      .map((msg: { role: string; content: string }) => {
+        const role = msg.role === 'user' ? 'Candidate' : 'Interviewer';
+        return `${role}: ${msg.content}`;
+      })
       .join('\n');
 
-    const prompt = `You are a professional AI interviewer conducting a job interview. Be conversational, encouraging, and ask relevant follow-up questions.
+    const lastCandidateMessage = messages[messages.length - 1]?.content || '';
 
-Conversation so far:
-${context}
+    const prompt = `You are an expert AI interviewer. Your goal is to conduct a professional, engaging, and relevant job interview for a role with the following description:
+    ---
+    Job Description:
+    ${jobDescription}
+    ---
 
-Candidate: ${message}
+    Here is the conversation history so far:
+    ${conversationContext}
 
-As the interviewer, provide a natural, encouraging response. Ask insightful follow-up questions based on their answer. Keep responses concise (2-3 sentences). Be professional but friendly.`;
+    The candidate's last response was: "${lastCandidateMessage}"
+
+    Based on the job description and the conversation history:
+    1. Formulate a single, relevant, and insightful follow-up interview question for the candidate.
+    2. Provide a brief, constructive assessment of the candidate's *last* response. The assessment should highlight strengths and suggest areas for improvement, specifically referencing the job description requirements.
+
+    Your output MUST be a JSON string with two fields: "nextQuestion" (string) and "assessment" (string).
+    Example:
+    {
+      "nextQuestion": "Can you describe a time when you had to manage conflicting priorities, and how did you handle it?",
+      "assessment": "Strength: Demonstrated understanding of project management principles. Suggestion: Could provide a more concrete example of a large-scale project."
+    }`;
 
     try {
-      const result = await geminiPro.generateContent(prompt);
+      const result = await model.generateContent(prompt);
       const response = await result.response;
-      const aiResponse = response.text().trim();
+      const aiResponseText = response.text().trim();
 
-      return NextResponse.json({ success: true, response: aiResponse });
-    } catch (aiError) {
+      // Attempt to parse the AI's response as JSON
+      let parsedResponse;
+      try {
+        parsedResponse = JSON.parse(aiResponseText);
+      } catch (jsonError) {
+        console.error('Failed to parse AI response as JSON:', jsonError);
+        console.error('Raw AI response:', aiResponseText);
+        return NextResponse.json(
+          { success: false, error: 'AI response was not valid JSON.', rawResponse: aiResponseText },
+          { status: 500 }
+        );
+      }
+
+      if (parsedResponse && typeof parsedResponse.nextQuestion === 'string' && typeof parsedResponse.assessment === 'string') {
+        return NextResponse.json({ success: true, ...parsedResponse });
+      } else {
+        console.error('AI response missing expected fields:', parsedResponse);
+        return NextResponse.json(
+          { success: false, error: 'AI response missing "nextQuestion" or "assessment" fields.', parsedResponse },
+          { status: 500 }
+        );
+      }
+
+    } catch (aiError: any) {
       console.error('AI generation error:', aiError);
-      // Fallback to basic responses
-      const fallbackResponses = [
-        'That\'s interesting! Can you tell me more about that?',
-        'Great point! How would you apply that in a professional setting?',
-        'I see. Can you give me a specific example?',
-        'Excellent! What did you learn from that experience?'
-      ];
-      const response = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
-      return NextResponse.json({ success: true, response });
+      return NextResponse.json(
+        { success: false, error: 'Failed to generate AI interview response', details: aiError.message },
+        { status: 500 }
+      );
     }
   } catch (error: any) {
-    console.error('Voice interview error:', error);
+    console.error('Voice interview API error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to process interview', details: error?.message },
+      { success: false, error: 'Failed to process interview request', details: error.message },
       { status: 500 }
     );
   }

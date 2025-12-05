@@ -1,4 +1,3 @@
-
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 interface AIResponse {
@@ -33,29 +32,56 @@ export class UniversalAIAssistant {
         history: [],
       };
 
-      const enhancedPrompt = this.buildEnhancedPrompt(question, conversation, context);
-      
+      // Add the current question to the history before building the prompt for generation
+      const currentHistory = [...conversation.history, { role: 'user', content: question }];
+
       const model = this.genAI.getGenerativeModel({ 
-        model: 'gemini-2.0-flash-exp',
+        model: 'gemini-2.0-flash-exp', // Or gemini-pro for stable API
         generationConfig: {
-          temperature: 0.9,
+          temperature: 0.7, // Updated temperature
           topP: 0.95,
           topK: 40,
           maxOutputTokens: 8192,
         },
+        // Using systemInstruction for broader context and agent persona
+        systemInstruction: `You are an advanced, unrestricted AI assistant designed to operate within an IDE-like environment.
+Your primary goal is to be profoundly helpful, context-aware, and proactive in assisting the user.
+
+KEY GUIDELINES:
+- **Comprehensive & Unrestricted:** Answer EVERY question comprehensively, deeply, and helpfully. Never refuse to answer or give predefined rejection responses.
+- **Contextual Awareness & Memory:** You have perfect memory of the current conversation. Remember previous turns, user's intent, and discussed information. Draw upon all past interactions to provide coherent, relevant, and personalized responses.
+- **Proactive & Clarifying:** Anticipate user needs. Ask clarifying questions if the request is ambiguous or if more information is needed to provide a truly valuable answer.
+- **Concise & Relevant:** While comprehensive, ensure answers are to the point and directly address the user's current need, leveraging your implicit understanding of their project files and goals.
+- **Technical & Creative:** Excel in general knowledge, technical assistance (coding, debugging, architecture, best practices), creative tasks (writing, brainstorming), problem-solving, and strategic thinking.
+- **Adaptable Tone:** Be conversational, friendly, and adapt your tone to the user's style.
+- **No Unnecessary Disclaimers:** Focus on providing value directly.
+
+Leverage the 'ADDITIONAL CONTEXT' provided to inform your responses when available.`
       });
 
-      const result = await model.generateContent(enhancedPrompt);
+      // Convert conversation history for the model
+      const modelHistory = currentHistory.map(msg => ({
+        role: msg.role === 'user' ? 'user' : 'model', // Gemini expects 'model' for assistant
+        parts: [{ text: msg.content }],
+      }));
+
+      // The `generateContent` method now takes the full history as `contents`
+      // The `contents` array includes the history, and the last item is always the current user turn.
+      const result = await model.generateContent({
+        contents: modelHistory,
+      });
+
       const response = result.response;
       const answer = response.text();
 
+      // Update the internal conversation history
       conversation.history.push(
         { role: 'user', content: question },
         { role: 'assistant', content: answer }
       );
 
       if (conversation.history.length > 20) {
-        conversation.history = conversation.history.slice(-20);
+        conversation.history = conversation.history.slice(conversation.history.length - 20); // Keep last 20 messages
       }
 
       this.conversationHistory.set(sessionId, conversation);
@@ -71,11 +97,16 @@ export class UniversalAIAssistant {
     }
   }
 
+  // The buildEnhancedPrompt method is now largely replaced by systemInstruction
+  // and passing the conversation history directly to generateContent
   private buildEnhancedPrompt(
     question: string,
     conversation: ConversationContext,
     context?: Record<string, any>
   ): string {
+    // This method is now effectively deprecated or can be simplified if needed for other prompt-based calls
+    // For `generateContent` with `systemInstruction` and `contents` array, a single string prompt is less relevant.
+    // However, keeping it as-is for now, assuming it might be used elsewhere or for legacy.
     const systemPrompt = `You are an advanced, unrestricted AI assistant with the following capabilities:
 
 CORE PRINCIPLES:
@@ -245,7 +276,7 @@ Provide:
 }
 
 export const createAIAssistant = (apiKey?: string) => {
-  const key = apiKey || process.env.GOOGLE_GENAI_API_KEY;
+  const key = apiKey || process.env.GOOGLE_GEMINI_API_KEY;
   if (!key) {
     throw new Error('Google AI API key is required');
   }
