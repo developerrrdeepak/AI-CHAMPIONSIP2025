@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Send, Paperclip, Mic, Search, MoreVertical, Smile, Image, Phone, Video } from 'lucide-react';
+import { Send, Paperclip, Mic, Search, MoreVertical, Smile, Image, Phone, Video, Sparkles } from 'lucide-react';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -28,6 +28,10 @@ export default function MessagesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [mounted, setMounted] = useState(false);
+  
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [isFetchingSuggestions, setIsFetchingSuggestions] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -46,23 +50,26 @@ export default function MessagesPage() {
     );
   }, [firestore, userId]);
 
-  const { data: allConversations } = useCollection<Conversation>(conversationsQuery);
+  const { data: allConversations, error: conversationsError } = useCollection<Conversation>(conversationsQuery);
+
+  useEffect(() => {
+    if (conversationsError) {
+      console.error("Firestore 'list' permission error:", conversationsError);
+      toast({
+        variant: 'destructive',
+        title: 'Database Error',
+        description: 'Could not load conversations. Check Firestore security rules.',
+      });
+    }
+  }, [conversationsError, toast]);
 
   const conversations = useMemo(() => {
-    if (!allConversations || !userId) return mockConversations;
+    if (!allConversations || !userId || conversationsError) return mockConversations;
     const filtered = allConversations.filter(conv => 
       conv.participants.some(p => p.id === userId)
     );
     return filtered.length > 0 ? filtered : mockConversations;
-  }, [allConversations, userId]);
-
-  const messagesQuery = useMemoFirebase(() => {
-    if (!firestore || !selectedConversation) return null;
-    return query(
-      collection(firestore, `conversations/${selectedConversation.id}/messages`),
-      orderBy('createdAt', 'asc')
-    );
-  }, [firestore, selectedConversation]);
+  }, [allConversations, userId, conversationsError]);
 
   const [realTimeMessages, setRealTimeMessages] = useState<Message[]>([]);
   
@@ -93,13 +100,63 @@ export default function MessagesPage() {
     if (selectedConversation && displayMessages && userId && firestore) {
       const unreadMessages = displayMessages.filter(m => m.receiverId === userId && !m.isRead);
       unreadMessages.forEach(async (msg) => {
-        if (msg.id.startsWith('m')) return;
+        if (msg.id.startsWith('m')) return; // Do not update mock messages
         await updateDoc(doc(firestore, `conversations/${selectedConversation.id}/messages`, msg.id), {
           isRead: true,
         });
       });
     }
   }, [displayMessages, selectedConversation, userId, firestore]);
+
+  const fetchAiSuggestions = async (conversation: Conversation, messages: Message[]) => {
+      if (!conversation || messages.length === 0) {
+          setAiSuggestions([]);
+          return;
+      }
+      setIsFetchingSuggestions(true);
+      setAiSuggestions([]);
+      try {
+          const response = await fetch('/api/ai/message-suggestions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                  conversationHistory: messages.map(m => ({
+                      role: m.senderId === userId ? 'user' : 'model',
+                      parts: [{ text: m.content || '' }],
+                  })),
+                  userContext: { userId, role, name: displayName },
+              }),
+          });
+
+          if (!response.ok) throw new Error('Failed to fetch AI suggestions');
+          
+          const data = await response.json();
+          if (data.success && data.suggestions) {
+              setAiSuggestions(data.suggestions);
+          } else {
+              setAiSuggestions([]);
+          }
+      } catch (error) {
+          console.error("Error fetching AI suggestions:", error);
+          setAiSuggestions([]);
+      } finally {
+          setIsFetchingSuggestions(false);
+      }
+  };
+
+  useEffect(() => {
+      if (selectedConversation && displayMessages.length > 0) {
+          const lastMessage = displayMessages[displayMessages.length - 1];
+          if (lastMessage && lastMessage.senderId !== userId) {
+              fetchAiSuggestions(selectedConversation, displayMessages);
+          } else {
+              setAiSuggestions([]);
+          }
+      } else {
+          setAiSuggestions([]);
+      }
+  }, [displayMessages, selectedConversation, userId]);
+
 
   const handleSendMessage = async () => {
     if (!messageText.trim() || !selectedConversation || !userId || !firestore) return;
@@ -108,29 +165,13 @@ export default function MessagesPage() {
       const receiver = selectedConversation.participants.find(p => p.id !== userId);
       if (!receiver) return;
 
-      await sendMessage(
-        firestore,
-        selectedConversation.id,
-        userId,
-        displayName || 'User',
-        role || 'User',
-        receiver.id,
-        messageText
-      );
-
+      await sendMessage(firestore, selectedConversation.id, userId, displayName || 'User', role || 'User', receiver.id, messageText);
       setMessageText('');
-      
-      toast({
-        title: 'Message sent',
-        description: 'Your message has been delivered.',
-      });
+      setAiSuggestions([]);
+      toast({ title: 'Message sent', description: 'Your message has been delivered.' });
     } catch (error) {
       console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to send message.',
-      });
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to send message.' });
     }
   };
 
@@ -142,41 +183,22 @@ export default function MessagesPage() {
       const storageRef = ref(storage, `messages/${selectedConversation.id}/${Date.now()}_${file.name}`);
       await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(storageRef);
-
       const receiver = selectedConversation.participants.find(p => p.id !== userId);
       if (!receiver) return;
 
       await addDoc(collection(firestore, `conversations/${selectedConversation.id}/messages`), {
-        conversationId: selectedConversation.id,
-        senderId: userId,
-        senderName: displayName,
-        senderRole: role,
-        receiverId: receiver.id,
-        type: 'attachment',
-        content: `Sent ${file.name}`,
-        attachmentUrl: downloadURL,
-        attachmentName: file.name,
-        isRead: false,
-        createdAt: new Date().toISOString(),
+        conversationId: selectedConversation.id, senderId: userId, senderName: displayName, senderRole: role,
+        receiverId: receiver.id, type: 'attachment', content: `Sent ${file.name}`, attachmentUrl: downloadURL,
+        attachmentName: file.name, isRead: false, createdAt: new Date().toISOString(),
       });
-
       await updateDoc(doc(firestore, 'conversations', selectedConversation.id), {
-        lastMessage: `📎 ${file.name}`,
-        lastMessageAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        lastMessage: `📎 ${file.name}`, updatedAt: new Date().toISOString(),
       });
 
-      toast({
-        title: 'File sent',
-        description: 'Your file has been sent successfully.',
-      });
+      toast({ title: 'File sent', description: 'Your file has been sent successfully.' });
     } catch (error) {
       console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to upload file.',
-      });
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to upload file.' });
     }
   };
 
@@ -186,26 +208,17 @@ export default function MessagesPage() {
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
-      };
-
+      mediaRecorder.ondataavailable = (event) => audioChunksRef.current.push(event.data);
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         await uploadVoiceMessage(audioBlob);
         stream.getTracks().forEach(track => track.stop());
       };
-
       mediaRecorder.start();
       setIsRecording(true);
     } catch (error) {
       console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to start recording.',
-      });
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to start recording.' });
     }
   };
 
@@ -218,45 +231,24 @@ export default function MessagesPage() {
 
   const uploadVoiceMessage = async (audioBlob: Blob) => {
     if (!selectedConversation || !userId || !storage || !firestore) return;
-
     try {
       const storageRef = ref(storage, `voice-messages/${selectedConversation.id}/${Date.now()}.webm`);
       await uploadBytes(storageRef, audioBlob);
       const downloadURL = await getDownloadURL(storageRef);
-
       const receiver = selectedConversation.participants.find(p => p.id !== userId);
       if (!receiver) return;
-
       await addDoc(collection(firestore, `conversations/${selectedConversation.id}/messages`), {
-        conversationId: selectedConversation.id,
-        senderId: userId,
-        senderName: displayName,
-        senderRole: role,
-        receiverId: receiver.id,
-        type: 'voice',
-        content: 'Voice message',
-        voiceUrl: downloadURL,
-        isRead: false,
-        createdAt: new Date().toISOString(),
+        conversationId: selectedConversation.id, senderId: userId, senderName: displayName, senderRole: role,
+        receiverId: receiver.id, type: 'voice', content: 'Voice message', voiceUrl: downloadURL,
+        isRead: false, createdAt: new Date().toISOString(),
       });
-
       await updateDoc(doc(firestore, 'conversations', selectedConversation.id), {
-        lastMessage: '🎤 Voice message',
-        lastMessageAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        lastMessage: '🎤 Voice message', updatedAt: new Date().toISOString(),
       });
-
-      toast({
-        title: 'Voice message sent',
-        description: 'Your voice message has been sent.',
-      });
+      toast({ title: 'Voice message sent', description: 'Your voice message has been sent.' });
     } catch (error) {
       console.error(error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to send voice message.',
-      });
+      toast({ variant: 'destructive', title: 'Error', description: 'Failed to send voice message.' });
     }
   };
 
@@ -344,15 +336,9 @@ export default function MessagesPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="hover:bg-primary/10">
-                    <Phone className="h-5 w-5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="hover:bg-primary/10">
-                    <Video className="h-5 w-5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="hover:bg-primary/10">
-                    <MoreVertical className="h-5 w-5" />
-                  </Button>
+                  <Button variant="ghost" size="icon" className="hover:bg-primary/10"><Phone className="h-5 w-5" /></Button>
+                  <Button variant="ghost" size="icon" className="hover:bg-primary/10"><Video className="h-5 w-5" /></Button>
+                  <Button variant="ghost" size="icon" className="hover:bg-primary/10"><MoreVertical className="h-5 w-5" /></Button>
                 </div>
               </div>
 
@@ -369,9 +355,7 @@ export default function MessagesPage() {
                             {msg.attachmentName}
                           </a>
                         )}
-                        {msg.type === 'voice' && (
-                          <audio controls src={msg.voiceUrl} className="w-full max-w-xs" />
-                        )}
+                        {msg.type === 'voice' && <audio controls src={msg.voiceUrl} className="w-full max-w-xs" />}
                         <div className="flex items-center justify-end gap-1 mt-1">
                           <p className="text-[10px] opacity-60">{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                           {isSender && msg.isRead && <span className="text-[10px] opacity-60">✓✓</span>}
@@ -386,18 +370,8 @@ export default function MessagesPage() {
 
               <div className="p-4 border-t bg-muted/30">
                 <div className="flex items-center gap-2">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    onChange={handleFileUpload}
-                  />
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="hover:bg-primary/10"
-                  >
+                  <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
+                  <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="hover:bg-primary/10">
                     <Paperclip className="h-5 w-5" />
                   </Button>
                   <div className="flex-1 relative">
@@ -408,20 +382,12 @@ export default function MessagesPage() {
                       onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                       className="pr-10 rounded-full border-2 focus:border-primary"
                     />
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-primary/10"
-                    >
+                    <Button variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-primary/10">
                       <Smile className="h-4 w-4" />
                     </Button>
                   </div>
                   {messageText.trim() ? (
-                    <Button 
-                      onClick={handleSendMessage} 
-                      size="icon"
-                      className="rounded-full h-10 w-10 bg-primary hover:bg-primary/90"
-                    >
+                    <Button onClick={handleSendMessage} size="icon" className="rounded-full h-10 w-10 bg-primary hover:bg-primary/90">
                       <Send className="h-5 w-5" />
                     </Button>
                   ) : (
@@ -435,6 +401,36 @@ export default function MessagesPage() {
                     </Button>
                   )}
                 </div>
+
+                {/* AI SUGGESTIONS UI */}
+                {isFetchingSuggestions && (
+                    <div className="mt-3 text-sm text-muted-foreground flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 animate-spin" />
+                        <span>Generating smart replies...</span>
+                    </div>
+                )}
+                {!isFetchingSuggestions && aiSuggestions.length > 0 && (
+                    <div className="mt-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Sparkles className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-medium">Smart Replies</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {aiSuggestions.map((suggestion, index) => (
+                            <Button
+                                key={index}
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setMessageText(suggestion)}
+                                className="text-xs h-auto py-1 px-3"
+                            >
+                                {suggestion}
+                            </Button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
               </div>
             </>
           ) : (
