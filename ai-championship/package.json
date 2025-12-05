@@ -105,7 +105,6 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "^3.0.4",
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
     "@types/bcryptjs": "^2.4.6",
