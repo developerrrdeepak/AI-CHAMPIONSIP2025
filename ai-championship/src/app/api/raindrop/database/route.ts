@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { executeSmartSQL } from '@/lib/raindropSmartComponents';
 
+export const dynamic = 'force-dynamic';
+
 // Mock data for demonstration when DB is not connected
 const mockCandidates = [
   { id: 'cand-1', name: 'John Doe', email: 'john@example.com', skills: '["React", "TypeScript"]', experience_years: 5, current_role: 'Senior Developer' },
