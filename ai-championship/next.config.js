@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // output: 'standalone', // Disabled for Vercel deployment compatibility
   experimental: {
     esmExternals: 'loose',
   },
