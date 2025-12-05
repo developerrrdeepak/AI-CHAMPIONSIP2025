@@ -1,3 +1,5 @@
+'use client';
+
 import {
   collection,
   addDoc,
@@ -12,14 +14,9 @@ import {
   getDocs,
   where,
   writeBatch,
-  setDoc, // Add setDoc for createConversation
-  Firestore // Ensure Firestore type is imported
+  setDoc,
+  Firestore
 } from 'firebase/firestore';
-import { getFirestore } from 'firebase/firestore'; // Explicitly import getFirestore
-import { firebaseApp } from '../firebase'; // Assuming firebaseApp is initialized here
-
-// Initialize Firestore
-const firestore = getFirestore(firebaseApp);
 
 export interface Message {
   id?: string; // Optional because it's added after fetching from Firestore
@@ -43,6 +40,7 @@ export interface Message {
 
 // Keeping the existing sendMessage function as it is already robust.
 export const sendMessage = async (
+  firestore: Firestore,
   conversationId: string,
   senderId: string,
   senderName: string,
@@ -50,6 +48,7 @@ export const sendMessage = async (
   receiverId: string,
   text: string
 ) => {
+  if (!firestore) throw new Error('Firestore not initialized');
   try {
     const conversationRef = doc(firestore, 'conversations', conversationId);
 
@@ -87,6 +86,7 @@ export const sendMessage = async (
 
 // Keeping the existing createConversation function as it is already robust.
 export const createConversation = async (
+  firestore: Firestore,
   user1Id: string,
   user1Name: string,
   user1Role: string,
@@ -96,6 +96,7 @@ export const createConversation = async (
   user2Role: string,
   user2Avatar: string
 ) => {
+  if (!firestore) throw new Error('Firestore not initialized');
   try {
     const convRef = doc(collection(firestore, 'conversations'));
     await setDoc(convRef, {
@@ -121,9 +122,11 @@ export const createConversation = async (
 // Renamed from getMessages to subscribeToMessages to match current code's functionality,
 // but ensured it uses the globally initialized firestore instance.
 export const subscribeToMessages = (
+  firestore: Firestore,
   conversationId: string,
   callback: (messages: Message[]) => void
 ) => {
+  if (!firestore) throw new Error('Firestore not initialized');
   const q = query(
     collection(firestore, 'conversations', conversationId, 'messages'),
     orderBy('createdAt', 'asc')
@@ -139,7 +142,8 @@ export const subscribeToMessages = (
   });
 };
 
-export const markMessagesAsRead = async (conversationId: string, userId: string) => {
+export const markMessagesAsRead = async (firestore: Firestore, conversationId: string, userId: string) => {
+    if (!firestore) throw new Error('Firestore not initialized');
     const q = query(
         collection(firestore, 'conversations', conversationId, 'messages'), 
         where('receiverId', '==', userId), 
