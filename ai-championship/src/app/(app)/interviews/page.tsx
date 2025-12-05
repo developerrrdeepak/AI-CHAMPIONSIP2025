@@ -17,10 +17,13 @@ import Link from 'next/link';
 import { placeholderImages } from '@/lib/placeholder-images';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { textToSpeech } from '@/ai/flows/ai-tts-flow';
-import { mockInterview } from '@/ai/flows/ai-mock-interview-flow';
 import { useUserContext } from '../layout';
 import { cn } from '@/lib/utils';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import React from 'react';
+import { CardDescription } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { Send, Loader2 } from 'lucide-react';
 
 type InterviewWithDetails = Interview & {
   candidateName?: string;
@@ -61,125 +64,189 @@ const JobSelection = ({ onStart }: { onStart: (jobType: string) => void }) => {
 };
 
 const InterviewSession = ({ jobType, onEnd }: { jobType: string, onEnd: () => void }) => {
-    const [conversation, setConversation] = useState<{ speaker: 'ai' | 'user', text: string }[]>([]);
-    const [isRecording, setIsRecording] = useState(false);
-    const [isAITurn, setIsAITurn] = useState(true);
-    const [status, setStatus] = useState('Starting...'); // 'thinking', 'speaking', 'listening'
-
-    const recognition = useMemo(() => {
-        if (typeof window !== 'undefined') {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if(SpeechRecognition) {
-                const recognitionInstance = new SpeechRecognition();
-                recognitionInstance.continuous = false;
-                recognitionInstance.interimResults = false;
-                return recognitionInstance;
-            }
-        }
-        return null;
-    }, []);
-    
+    const [conversation, setConversation] = useState<{ role: 'user' | 'model', parts: { text: string }[] }[]>([]);
+    const [displayMessages, setDisplayMessages] = useState<{ speaker: 'ai' | 'user', text: string }[]>([]);
+    const [userInput, setUserInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [questionCount, setQuestionCount] = useState(0);
     const conversationEndRef = React.useRef<HTMLDivElement | null>(null);
+    
     useEffect(() => {
         conversationEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [conversation]);
-
+    }, [displayMessages]);
 
     useEffect(() => {
         const startInterview = async () => {
-            setStatus('thinking');
-            const initialResponse = await mockInterview({ jobType, history: [] });
-            setStatus('speaking');
-            const audioData = await textToSpeech(initialResponse.response);
-            
-            setConversation([{ speaker: 'ai', text: initialResponse.response }]);
-            const audio = new Audio(audioData);
-            audio.play();
-            audio.onended = () => {
-                setIsAITurn(false);
-                setStatus('listening');
-            };
+            setIsLoading(true);
+            try {
+                const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || 'AIzaSyDCKcyhybchP32b7ZMbowQ_tbFiTyUPHdw');
+                const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+                
+                const chat = model.startChat({
+                    history: [],
+                    generationConfig: {
+                        maxOutputTokens: 200,
+                        temperature: 0.7,
+                    },
+                });
+                
+                const prompt = `You are an expert interviewer conducting a mock interview for a ${jobType} position. Start the interview with a friendly greeting and ask the first relevant question. Keep responses concise (2-3 sentences max). Ask behavioral and technical questions appropriate for this role.`;
+                
+                const result = await chat.sendMessage(prompt);
+                const response = result.response.text();
+                
+                setConversation([{ role: 'model', parts: [{ text: response }] }]);
+                setDisplayMessages([{ speaker: 'ai', text: response }]);
+                setQuestionCount(1);
+            } catch (error) {
+                console.error('Error starting interview:', error);
+                setDisplayMessages([{ speaker: 'ai', text: 'Hello! I\'m your AI interviewer. Let\'s start with: Tell me about yourself and your experience.' }]);
+            } finally {
+                setIsLoading(false);
+            }
         };
         startInterview();
     }, [jobType]);
     
-    useEffect(() => {
-        if (!recognition) return;
-
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript;
-            setConversation(prev => [...prev, { speaker: 'user', text: transcript }]);
-            setIsAITurn(true);
-            setStatus('thinking');
-            
-            const getNextQuestion = async () => {
-                const history = [...conversation, { speaker: 'user', text: transcript }];
-                const nextResponse = await mockInterview({ jobType, history });
-                setStatus('speaking');
-                const audioData = await textToSpeech(nextResponse.response);
-
-                setConversation(prev => [...prev, { speaker: 'ai', text: nextResponse.response }]);
-                const audio = new Audio(audioData);
-                audio.play();
-                audio.onended = () => {
-                    setIsAITurn(false);
-                    setStatus('listening');
-                };
-            };
-            getNextQuestion();
-        };
-
-        recognition.onend = () => {
-            setIsRecording(false);
-        };
+    const handleSendMessage = async () => {
+        if (!userInput.trim() || isLoading) return;
         
-        recognition.onerror = (event) => {
-            console.error('Speech recognition error', event.error);
-            setIsRecording(false);
-            setStatus('listening');
-        };
-
-    }, [recognition, conversation, jobType]);
-
-
-    const toggleRecording = () => {
-        if (!recognition) {
-            alert('Speech recognition is not supported in this browser.');
-            return;
+        const userMessage = userInput.trim();
+        setUserInput('');
+        setDisplayMessages(prev => [...prev, { speaker: 'user', text: userMessage }]);
+        setIsLoading(true);
+        
+        try {
+            const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || 'AIzaSyDCKcyhybchP32b7ZMbowQ_tbFiTyUPHdw');
+            const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+            
+            const chat = model.startChat({
+                history: [
+                    ...conversation,
+                    { role: 'user', parts: [{ text: userMessage }] }
+                ],
+                generationConfig: {
+                    maxOutputTokens: 200,
+                    temperature: 0.7,
+                },
+            });
+            
+            let prompt = '';
+            if (questionCount >= 5) {
+                prompt = `The candidate answered: "${userMessage}". This is question ${questionCount + 1}. Provide brief feedback on their answer and wrap up the interview with encouraging closing remarks. Keep it short (2-3 sentences).`;
+            } else {
+                prompt = `The candidate answered: "${userMessage}". This is question ${questionCount + 1} of the interview. Acknowledge briefly (1 sentence) and ask the next relevant ${jobType} interview question. Keep total response under 3 sentences.`;
+            }
+            
+            const result = await chat.sendMessage(prompt);
+            const response = result.response.text();
+            
+            setConversation(prev => [
+                ...prev,
+                { role: 'user', parts: [{ text: userMessage }] },
+                { role: 'model', parts: [{ text: response }] }
+            ]);
+            setDisplayMessages(prev => [...prev, { speaker: 'ai', text: response }]);
+            setQuestionCount(prev => prev + 1);
+        } catch (error) {
+            console.error('Error sending message:', error);
+            setDisplayMessages(prev => [...prev, { speaker: 'ai', text: 'I apologize, there was an error. Could you please repeat your answer?' }]);
+        } finally {
+            setIsLoading(false);
         }
-        if (isRecording) {
-            recognition.stop();
-        } else {
-            recognition.start();
-        }
-        setIsRecording(!isRecording);
     };
 
     return (
-        <Card className="max-w-2xl mx-auto animate-in fade-in-0 duration-500">
+        <Card className="max-w-3xl mx-auto animate-in fade-in-0 duration-500">
             <CardHeader>
-                <CardTitle>Mock Interview: {jobType}</CardTitle>
-                <CardDescription>Your session is in progress. The AI is now {status}.</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                    <BrainCircuit className="h-5 w-5" />
+                    AI Mock Interview: {jobType}
+                </CardTitle>
+                <CardDescription>
+                    Question {questionCount} • Answer naturally like you would in a real interview
+                </CardDescription>
             </CardHeader>
-            <CardContent>
-                <div className="space-y-4 h-96 overflow-y-auto p-4 border rounded-md mb-4 bg-muted/30">
-                    {conversation.map((entry, index) => (
-                        <div key={index} className={cn("flex items-end gap-2", entry.speaker === 'user' && 'justify-end')}>
-                             {entry.speaker === 'ai' && <Avatar className="h-8 w-8"><AvatarFallback><BrainCircuit /></AvatarFallback></Avatar>}
-                            <div className={cn("p-3 rounded-lg max-w-[80%]", entry.speaker === 'ai' ? 'bg-background' : 'bg-primary text-primary-foreground')}>
-                                {entry.text}
+            <CardContent className="space-y-4">
+                <div className="space-y-4 h-[500px] overflow-y-auto p-4 border rounded-lg bg-muted/30">
+                    {displayMessages.map((entry, index) => (
+                        <div key={index} className={cn("flex items-start gap-3", entry.speaker === 'user' && 'justify-end')}>
+                            {entry.speaker === 'ai' && (
+                                <Avatar className="h-8 w-8 mt-1">
+                                    <AvatarFallback className="bg-primary text-primary-foreground">
+                                        <BrainCircuit className="h-4 w-4" />
+                                    </AvatarFallback>
+                                </Avatar>
+                            )}
+                            <div className={cn(
+                                "p-4 rounded-lg max-w-[85%] shadow-sm",
+                                entry.speaker === 'ai' 
+                                    ? 'bg-background border' 
+                                    : 'bg-primary text-primary-foreground'
+                            )}>
+                                <p className="text-sm leading-relaxed whitespace-pre-wrap">{entry.text}</p>
                             </div>
+                            {entry.speaker === 'user' && (
+                                <Avatar className="h-8 w-8 mt-1">
+                                    <AvatarFallback>You</AvatarFallback>
+                                </Avatar>
+                            )}
                         </div>
                     ))}
+                    {isLoading && (
+                        <div className="flex items-start gap-3">
+                            <Avatar className="h-8 w-8 mt-1">
+                                <AvatarFallback className="bg-primary text-primary-foreground">
+                                    <BrainCircuit className="h-4 w-4" />
+                                </AvatarFallback>
+                            </Avatar>
+                            <div className="p-4 rounded-lg bg-background border">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            </div>
+                        </div>
+                    )}
                     <div ref={conversationEndRef} />
                 </div>
-                <div className="flex items-center gap-4">
-                    <Button onClick={toggleRecording} disabled={isAITurn} className="w-full">
-                        {isRecording ? <Square className="mr-2 h-4 w-4" /> : <Mic className="mr-2 h-4 w-4" />}
-                        {isRecording ? 'Stop Answering' : (isAITurn ? 'AI is speaking...' : 'Start Answering')}
-                    </Button>
-                    <Button variant="outline" onClick={onEnd}>End Session</Button>
+                
+                <div className="flex gap-2">
+                    <Textarea
+                        placeholder="Type your answer here..."
+                        value={userInput}
+                        onChange={(e) => setUserInput(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleSendMessage();
+                            }
+                        }}
+                        disabled={isLoading}
+                        className="min-h-[80px] resize-none"
+                    />
+                    <div className="flex flex-col gap-2">
+                        <Button 
+                            onClick={handleSendMessage} 
+                            disabled={isLoading || !userInput.trim()}
+                            size="icon"
+                            className="h-[80px] w-12"
+                        >
+                            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            onClick={onEnd}
+                            size="sm"
+                            className="text-xs"
+                        >
+                            End
+                        </Button>
+                    </div>
                 </div>
+                
+                {questionCount >= 5 && (
+                    <p className="text-xs text-muted-foreground text-center">
+                        💡 Tip: You've answered {questionCount} questions. The AI will wrap up soon.
+                    </p>
+                )}
             </CardContent>
         </Card>
     );
