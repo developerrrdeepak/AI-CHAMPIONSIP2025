@@ -18,8 +18,10 @@ import { collection, doc, getDoc } from "firebase/firestore";
 import { Switch } from "@/components/ui/switch";
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, X, Building } from "lucide-react";
+import { Loader2, X, Building, BrainCircuit, Sparkles } from "lucide-react";
 import { useUserContext } from "@/app/(app)/layout";
+import { aiImproveJobDescription } from "@/ai/flows/ai-improve-job-description";
+import { suggestSkills } from "@/ai/flows/ai-suggest-skills";
 
 const jobFormSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -92,6 +94,7 @@ export default function NewJobPage() {
     const { firestore, user } = useFirebase();
     const { organizationId } = useUserContext();
     const [organization, setOrganization] = useState<any>(null);
+    const [isAILoading, setIsAILoading] = useState(false);
 
     useEffect(() => {
         if (!firestore || !organizationId) return;
@@ -415,7 +418,35 @@ export default function NewJobPage() {
                     name="requiredSkills"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Required Skills</FormLabel>
+                        <div className="flex items-center justify-between mb-2">
+                          <FormLabel>Required Skills</FormLabel>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              const desc = form.getValues('jobDescription');
+                              if (!desc) {
+                                toast({ variant: "destructive", title: "Error", description: "Please add job description first" });
+                                return;
+                              }
+                              setIsAILoading(true);
+                              try {
+                                const result = await suggestSkills({ jobDescription: desc });
+                                field.onChange([...field.value, ...result.suggestedSkills.filter(s => !field.value.includes(s))]);
+                                toast({ title: "Success", description: "Skills suggested by AI!" });
+                              } catch (error) {
+                                toast({ variant: "destructive", title: "Error", description: "Failed to suggest skills" });
+                              } finally {
+                                setIsAILoading(false);
+                              }
+                            }}
+                            disabled={isAILoading}
+                          >
+                            {isAILoading ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : <BrainCircuit className="mr-2 h-3 w-3" />}
+                            AI Suggest
+                          </Button>
+                        </div>
                         <FormControl>
                            <SkillsInput {...field} placeholder="Type skill and press Enter..." />
                         </FormControl>
@@ -445,7 +476,34 @@ export default function NewJobPage() {
                     name="jobDescription"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Job Description</FormLabel>
+                        <div className="flex items-center justify-between mb-2">
+                          <FormLabel>Job Description</FormLabel>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              if (!field.value) {
+                                toast({ variant: "destructive", title: "Error", description: "Please write a basic description first" });
+                                return;
+                              }
+                              setIsAILoading(true);
+                              try {
+                                const result = await aiImproveJobDescription({ jobDescription: field.value });
+                                field.onChange(result.improvedJobDescription);
+                                toast({ title: "Success", description: "Job description improved by AI!" });
+                              } catch (error) {
+                                toast({ variant: "destructive", title: "Error", description: "Failed to improve description" });
+                              } finally {
+                                setIsAILoading(false);
+                              }
+                            }}
+                            disabled={isAILoading}
+                          >
+                            {isAILoading ? <Loader2 className="mr-2 h-3 w-3 animate-spin" /> : <Sparkles className="mr-2 h-3 w-3" />}
+                            AI Improve
+                          </Button>
+                        </div>
                         <FormControl>
                         <Textarea
                             placeholder="Describe the role, responsibilities, and qualifications."

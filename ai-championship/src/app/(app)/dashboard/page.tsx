@@ -2,7 +2,7 @@
 
 import { useUserRole } from '@/hooks/use-user-role';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Briefcase, Users, FileText, Calendar } from 'lucide-react';
+import { Loader2, Briefcase, Users, FileText, Calendar, BrainCircuit, TrendingUp, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
@@ -45,6 +45,34 @@ export default function DashboardPage() {
   const { data: candidates } = useCollection(candidatesQuery);
   const { data: applications } = useCollection(applicationsQuery);
   const { data: interviews } = useCollection(interviewsQuery);
+
+  // AI Insights
+  const aiInsights = [
+    {
+      title: "Hiring Velocity",
+      description: applications && applications.length > 0 
+        ? `You have ${applications.length} active applications. ${applications.filter(a => a.stage === 'screening').length} need review.`
+        : "No active applications yet. Start by posting a job!",
+      icon: TrendingUp,
+      color: "text-blue-500"
+    },
+    {
+      title: "Top Candidates",
+      description: applications && applications.length > 0
+        ? `${applications.filter(a => (a.fitScore || 0) > 80).length} high-fit candidates (80%+ match) available.`
+        : "Post jobs to start receiving candidate matches.",
+      icon: Users,
+      color: "text-green-500"
+    },
+    {
+      title: "Action Required",
+      description: interviews && interviews.length > 0
+        ? `${interviews.length} interviews scheduled. Don't forget to prepare!`
+        : "No pending interviews. Schedule interviews with top candidates.",
+      icon: AlertCircle,
+      color: "text-orange-500"
+    }
+  ];
 
   if (isLoading) {
     return (
@@ -119,6 +147,31 @@ export default function DashboardPage() {
           );
         })}
       </div>
+
+      {/* AI Insights Section */}
+      <Card className="mt-6 border-primary/20 bg-gradient-to-br from-primary/5 to-purple-500/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BrainCircuit className="h-5 w-5 text-primary" />
+            AI Insights & Recommendations
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3">
+            {aiInsights.map((insight, idx) => (
+              <div key={idx} className="p-4 rounded-lg bg-background/50 border">
+                <div className="flex items-start gap-3">
+                  <insight.icon className={`h-5 w-5 mt-0.5 ${insight.color}`} />
+                  <div>
+                    <h3 className="font-semibold mb-1">{insight.title}</h3>
+                    <p className="text-sm text-muted-foreground">{insight.description}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

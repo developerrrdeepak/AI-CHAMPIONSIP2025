@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Send, Paperclip, Mic, Search, MoreVertical, Smile, Image, Phone, Video } from 'lucide-react';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useUserContext } from '../layout';
 import type { Conversation, Message } from '@/lib/definitions';
