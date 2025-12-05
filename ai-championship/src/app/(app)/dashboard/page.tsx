@@ -2,7 +2,8 @@
 
 import { useUserRole } from '@/hooks/use-user-role';
 import { PageHeader } from '@/components/page-header';
-import { Loader2, Briefcase, Users, FileText, Calendar, BrainCircuit, TrendingUp, AlertCircle } from 'lucide-react';
+import { Loader2, Briefcase, Users, FileText, Calendar, BrainCircuit, TrendingUp, AlertCircle, Sparkles, Target, Clock } from 'lucide-react';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { useFirebase, useCollection, useMemoFirebase } from '@/firebase';
@@ -16,10 +17,53 @@ export default function DashboardPage() {
   const { organizationId } = useUserContext();
 
   const [mounted, setMounted] = useState(false);
+  const [aiInsightsLoading, setAiInsightsLoading] = useState(false);
+  const [aiRecommendations, setAiRecommendations] = useState<string[]>([]);
+  
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 10);
     return () => clearTimeout(t);
   }, []);
+  
+  // Generate AI recommendations based on actual data
+  useEffect(() => {
+    const generateAIInsights = async () => {
+      if (!jobs || !applications || aiInsightsLoading) return;
+      
+      setAiInsightsLoading(true);
+      try {
+        const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || 'AIzaSyDCKcyhybchP32b7ZMbowQ_tbFiTyUPHdw');
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+        
+        const prompt = `Based on this hiring data, provide 3 actionable recommendations:
+        - Open Jobs: ${jobs.length}
+        - Total Applications: ${applications.length}
+        - Applications needing review: ${applications.filter(a => a.stage === 'screening').length}
+        - Scheduled Interviews: ${interviews?.length || 0}
+        
+Return ONLY a JSON array of 3 short recommendation strings (max 15 words each). Example: ["Schedule interviews for top 5 candidates", "Review 12 pending applications", "Post new job for React developers"]`;
+        
+        const result = await model.generateContent(prompt);
+        const text = result.response.text();
+        const recommendations = JSON.parse(text.replace(/```json\n?|```/g, '').trim());
+        
+        setAiRecommendations(recommendations);
+      } catch (error) {
+        console.error('AI insights error:', error);
+        setAiRecommendations([
+          "Review pending applications to speed up hiring",
+          "Schedule interviews with high-fit candidates",
+          "Update job descriptions for better matches"
+        ]);
+      } finally {
+        setAiInsightsLoading(false);
+      }
+    };
+    
+    if (jobs && applications && aiRecommendations.length === 0) {
+      generateAIInsights();
+    }
+  }, [jobs, applications, interviews, aiInsightsLoading, aiRecommendations.length]);
 
   const jobsQuery = useMemoFirebase(() => {
     if (!firestore || !organizationId) return null;
@@ -46,31 +90,42 @@ export default function DashboardPage() {
   const { data: applications } = useCollection(applicationsQuery);
   const { data: interviews } = useCollection(interviewsQuery);
 
-  // AI Insights
+  // Real-time AI Insights based on actual data
   const aiInsights = [
     {
       title: "Hiring Velocity",
       description: applications && applications.length > 0 
-        ? `You have ${applications.length} active applications. ${applications.filter(a => a.stage === 'screening').length} need review.`
+        ? `${applications.length} active applications. ${applications.filter(a => a.stage === 'screening').length} need review.`
         : "No active applications yet. Start by posting a job!",
       icon: TrendingUp,
-      color: "text-blue-500"
+      color: "text-blue-500",
+      metric: applications?.length || 0
     },
     {
       title: "Top Candidates",
       description: applications && applications.length > 0
         ? `${applications.filter(a => (a.fitScore || 0) > 80).length} high-fit candidates (80%+ match) available.`
         : "Post jobs to start receiving candidate matches.",
-      icon: Users,
-      color: "text-green-500"
+      icon: Target,
+      color: "text-green-500",
+      metric: applications?.filter(a => (a.fitScore || 0) > 80).length || 0
     },
     {
-      title: "Action Required",
-      description: interviews && interviews.length > 0
-        ? `${interviews.length} interviews scheduled. Don't forget to prepare!`
-        : "No pending interviews. Schedule interviews with top candidates.",
-      icon: AlertCircle,
-      color: "text-orange-500"
+      title: "Time to Hire",
+      description: applications && applications.length > 0
+        ? `Average ${Math.round(applications.reduce((acc, app) => {
+            const days = (new Date().getTime() - new Date(app.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+            return acc + days;
+          }, 0) / applications.length)} days per application`
+        : "No data available yet.",
+      icon: Clock,
+      color: "text-purple-500",
+      metric: applications && applications.length > 0 
+        ? Math.round(applications.reduce((acc, app) => {
+            const days = (new Date().getTime() - new Date(app.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+            return acc + days;
+          }, 0) / applications.length)
+        : 0
     }
   ];
 
@@ -153,22 +208,50 @@ export default function DashboardPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BrainCircuit className="h-5 w-5 text-primary" />
-            AI Insights & Recommendations
+            AI-Powered Insights & Recommendations
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           <div className="grid gap-4 md:grid-cols-3">
             {aiInsights.map((insight, idx) => (
-              <div key={idx} className="p-4 rounded-lg bg-background/50 border">
+              <div key={idx} className="p-4 rounded-lg bg-background/50 border hover:border-primary/30 transition-colors">
                 <div className="flex items-start gap-3">
                   <insight.icon className={`h-5 w-5 mt-0.5 ${insight.color}`} />
-                  <div>
-                    <h3 className="font-semibold mb-1">{insight.title}</h3>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <h3 className="font-semibold">{insight.title}</h3>
+                      <span className="text-2xl font-bold text-primary">{insight.metric}</span>
+                    </div>
                     <p className="text-sm text-muted-foreground">{insight.description}</p>
                   </div>
                 </div>
               </div>
             ))}
+          </div>
+          
+          {/* AI Recommendations */}
+          <div className="border-t pt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="h-4 w-4 text-amber-500" />
+              <h3 className="font-semibold">AI Recommendations</h3>
+              {aiInsightsLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+            </div>
+            <div className="space-y-2">
+              {aiRecommendations.length > 0 ? (
+                aiRecommendations.map((rec, idx) => (
+                  <div key={idx} className="flex items-start gap-2 p-3 rounded-lg bg-background/50 border">
+                    <div className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">
+                      {idx + 1}
+                    </div>
+                    <p className="text-sm flex-1">{rec}</p>
+                  </div>
+                ))
+              ) : (
+                <div className="text-sm text-muted-foreground text-center py-4">
+                  {aiInsightsLoading ? 'Generating AI recommendations...' : 'No recommendations available yet.'}
+                </div>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

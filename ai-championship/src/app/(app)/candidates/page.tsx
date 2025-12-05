@@ -22,6 +22,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { aiCandidateRanking } from '@/ai/flows/ai-candidate-ranking';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 type CandidateWithAppInfo = Candidate & {
   jobTitle?: string;
@@ -97,6 +99,8 @@ export default function CandidatesPage() {
     const [selectedCandidate, setSelectedCandidate] = useState<CandidateWithAppInfo | null>(null);
     const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
     const [selectedJobForInvite, setSelectedJobForInvite] = useState('');
+    const [aiSearching, setAiSearching] = useState(false);
+    const [aiRecommendations, setAiRecommendations] = useState<string[]>([]);
     
     useEffect(() => {
       const t = setTimeout(() => setMounted(true), 10);
@@ -306,6 +310,44 @@ export default function CandidatesPage() {
         }
     };
 
+    const handleAISearch = async () => {
+        if (!searchTerm || searchTerm.length < 3) {
+            toast({
+                variant: "destructive",
+                title: "Search too short",
+                description: "Please enter at least 3 characters for AI search",
+            });
+            return;
+        }
+        
+        setAiSearching(true);
+        try {
+            const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || 'AIzaSyDCKcyhybchP32b7ZMbowQ_tbFiTyUPHdw');
+            const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+            
+            const prompt = `Based on this search query: "${searchTerm}", suggest 3 relevant skills or keywords that would help find the right candidates. Return ONLY a JSON array of strings, nothing else. Example: ["React", "Node.js", "TypeScript"]`;
+            
+            const result = await model.generateContent(prompt);
+            const text = result.response.text();
+            const suggestions = JSON.parse(text.replace(/```json\n?|```/g, '').trim());
+            
+            setAiRecommendations(suggestions);
+            toast({
+                title: "AI Suggestions Ready",
+                description: `Found ${suggestions.length} relevant skills to refine your search`,
+            });
+        } catch (error) {
+            console.error('AI search error:', error);
+            toast({
+                variant: "destructive",
+                title: "AI Search Failed",
+                description: "Could not generate AI suggestions. Try again.",
+            });
+        } finally {
+            setAiSearching(false);
+        }
+    };
+
     const handleFindSimilar = (candidate: CandidateWithAppInfo) => {
         // Set filters based on candidate profile
         if (candidate.skills && candidate.skills.length > 0) {
@@ -361,14 +403,44 @@ export default function CandidatesPage() {
               <CardTitle className="text-lg">Filters</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by name, email..."
-                  className="pl-10"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+              <div className="space-y-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name, email..."
+                    className="pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAISearch()}
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={handleAISearch}
+                  disabled={aiSearching || !searchTerm || searchTerm.length < 3}
+                >
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  {aiSearching ? 'AI Analyzing...' : 'AI Smart Search'}
+                </Button>
+                {aiRecommendations.length > 0 && (
+                  <div className="space-y-2 pt-2">
+                    <Label className="text-xs text-muted-foreground">AI Suggestions:</Label>
+                    <div className="flex flex-wrap gap-1">
+                      {aiRecommendations.map((skill, idx) => (
+                        <Badge
+                          key={idx}
+                          variant="secondary"
+                          className="cursor-pointer hover:bg-primary hover:text-primary-foreground"
+                          onClick={() => setSkillFilter(skill)}
+                        >
+                          {skill}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
               
               <div>
