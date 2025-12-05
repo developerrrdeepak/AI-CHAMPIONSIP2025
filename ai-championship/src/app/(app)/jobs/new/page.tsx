@@ -1,5 +1,3 @@
-I've updated the `ai-championship/src/app/(app)/jobs/new/page.tsx` file as requested.
-
 Here's a summary of the changes:
 
 1.  **`aiImproveJobDescription` and `suggestSkills` imports are replaced.** The original code used a local `ai/flows` import for `aiImproveJobDescription`. I have removed that import because the new implementation will call the new API route `/api/ai/improve-job-description` directly.
