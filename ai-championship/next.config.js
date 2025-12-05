@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  outputFileTracingRoot: undefined,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
+  },
   transpilePackages: ['date-fns', 'react-day-picker'],
   eslint: {
     ignoreDuringBuilds: true,
