@@ -56,30 +56,31 @@ export async function POST(request: NextRequest) {
     const response = result.response;
     const text = response.text();
 
-    // Attempt to parse the AI's response as JSON
-    let cleanedText = text;
-    const jsonMatch = text.match(/
+    let aiResponseJson;
+    try {
+      // The model sometimes wraps JSON in markdown code blocks. Attempt to extract if wrapped.
+      const jsonMatch = text.match(/
 ```
 json\s*([\s\S]*?)\s*
 ```
 /);
-    if (jsonMatch && jsonMatch[1]) {
-      cleanedText = jsonMatch[1];
-    } else {
-      // If not wrapped in 
+      let contentToParse = text;
+      if (jsonMatch && jsonMatch[1]) {
+        contentToParse = jsonMatch[1];
+      } else {
+        // If not wrapped in 
 ```
-json, try to clean other markdown code blocks
-      cleanedText = text.replace(/
+json, try to clean other markdown code blocks or just trim
+        contentToParse = text.replace(/
 ```
-(?:json)?\s*([\s\S]*?)\s*```/g, '$1');
-    }
-
-    let aiResponseJson;
-    try {
-      aiResponseJson = JSON.parse(cleanedText);
+(?:json)?\s*([\s\S]*?)\s*```/g, '$1').trim();
+      }
+      aiResponseJson = JSON.parse(contentToParse);
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON after cleaning:', parseError);
-      throw new Error('AI response was not valid JSON even after cleaning.');
+      // Log the problematic text for debugging
+      console.error('Problematic AI response text:\n', text);
+      throw new Error('AI response was not valid JSON even after cleaning. Check console for details.');
     }
 
     // Validate the structure of the AI's JSON response
