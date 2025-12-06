@@ -3,10 +3,10 @@
 
 import { useUserRole } from '@/hooks/use-user-role';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 
-export default function AppRootPage() {
+function AppRootContent() {
   const { role, isLoading } = useUserRole();
   const router = useRouter();
 
@@ -24,5 +24,13 @@ export default function AppRootPage() {
     <div className="flex h-[calc(100vh-200px)] w-full items-center justify-center">
       <Loader2 className="h-8 w-8 animate-spin text-slate-500" />
     </div>
+  );
+}
+
+export default function AppRootPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen w-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+      <AppRootContent />
+    </Suspense>
   );
 }
