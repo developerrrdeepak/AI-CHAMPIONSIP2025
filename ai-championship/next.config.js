@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  experimental: {
+    esmExternals: 'loose',
+  },
   transpilePackages: ['date-fns', 'react-day-picker'],
   eslint: {
     ignoreDuringBuilds: true,
@@ -12,15 +15,17 @@ const nextConfig = {
   compress: true,
 
   webpack: (config, { isServer }) => {
-    if (!isServer) {
+    if (isServer) {
       config.externals.push({
-        // Define server-only modules that should not be bundled on the client side
-        // This helps prevent 'Module not found' errors for server-specific packages
-        // and reduces client-side bundle size.
         'pdf-parse': 'commonjs pdf-parse',
         'express': 'commonjs express',
         'require-in-the-middle': 'commonjs require-in-the-middle',
-        // Add other server-only modules here as needed
+        // Explicitly externalize Genkit and its core dependencies if they are causing issues.
+        // This ensures they are not bundled with the client-side code.
+        'genkit': 'commonjs genkit',
+        '@genkit-ai/core': 'commonjs @genkit-ai/core',
+        '@genkit-ai/google-cloud': 'commonjs @genkit-ai/google-cloud',
+        // Add other Genkit related packages if needed
       });
     }
     return config;
@@ -56,7 +61,8 @@ const nextConfig = {
             value: 'max-age=31536000; includeSubDomains',
           },
         ],
-      },\n    ];
+      },
+    ];
   },
   
   images: {
