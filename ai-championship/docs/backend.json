@@ -1,0 +1,55 @@
+{
+  "entities": {
+    "User": {
+      "id": "string",
+      "email": "string",
+      "role": "string",
+      "displayName": "string",
+      "organizationId": "string"
+    },
+    "Job": {
+      "id": "string",
+      "title": "string",
+      "description": "string",
+      "requirements": "string[]",
+      "organizationId": "string"
+    },
+    "Candidate": {
+      "id": "string",
+      "name": "string",
+      "email": "string",
+      "resume": "string",
+      "skills": "string[]"
+    },
+    "Application": {
+      "id": "string",
+      "jobId": "string",
+      "candidateId": "string",
+      "status": "string"
+    },
+    "Interview": {
+      "id": "string",
+      "applicationId": "string",
+      "date": "string",
+      "interviewerId": "string"
+    },
+    "Challenge": {
+      "id": "string",
+      "title": "string",
+      "description": "string",
+      "type": "string"
+    },
+    "Email": {
+      "id": "string",
+      "subject": "string",
+      "body": "string",
+      "to": "string",
+      "from": "string"
+    },
+    "Organization": {
+      "id": "string",
+      "name": "string",
+      "ownerId": "string"
+    }
+  }
+}
