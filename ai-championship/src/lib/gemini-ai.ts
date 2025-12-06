@@ -70,7 +70,7 @@ export async function extractSkillsFromJD(jobDescription: string) {
     try {
       return JSON.parse(text.replace(/```json\n?|\n?```/g, ''));
     } catch {
-      return text.split('\n').filter(s => s.trim()).map(s => s.replace(/^[-*]\s*/, ''));
+      return text.split('\n').filter((s: any) => s.trim()).map((s: any) => s.replace(/^[-*]\s*/, ''));
     }
   } catch (error) {
     console.error('Gemini AI error:', error);
