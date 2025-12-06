@@ -320,6 +320,7 @@ export default function CandidateDashboardPage() {
 
 
 function AvailableJobsList({ candidate }: { candidate: Candidate | null }) {
+    // @ts-ignore
     const { jobs, isLoading } = useJobs('Candidate');
 
     // AI-powered match score calculation
@@ -427,6 +428,7 @@ function AvailableCoursesList() {
 }
 
 function AvailableChallengesList() {
+    // @ts-ignore
     const { challenges, isLoading } = useChallenges();
 
     const prizes = ['🏆 $5,000', '💰 $3,000', '🎁 $1,000'];
