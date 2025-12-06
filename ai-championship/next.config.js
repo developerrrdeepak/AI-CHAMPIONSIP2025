@@ -1,10 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '2mb',
-    },
-  },
+  // output: 'standalone', // Disabled for Vercel deployment compatibility
   transpilePackages: ['date-fns', 'react-day-picker'],
   eslint: {
     ignoreDuringBuilds: true,
