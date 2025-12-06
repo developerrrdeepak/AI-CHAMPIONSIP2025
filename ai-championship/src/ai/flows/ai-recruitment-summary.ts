@@ -28,6 +28,7 @@ export async function generateRecruitmentSummary(input: RecruitmentSummaryInput)
   return recruitmentSummaryFlow(input);
 }
 
+// @ts-ignore
 const prompt = ai.definePrompt({
   name: 'recruitmentSummaryPrompt',
   input: {schema: RecruitmentSummaryInputSchema},

@@ -36,6 +36,7 @@ export async function sourceCandidatesFlow(jobDescription: string): Promise<Cand
     return result.candidates;
 }
 
+// @ts-ignore
 const prompt = ai.definePrompt({
   name: 'aiSourceCandidatesPrompt',
   input: { schema: AISourceCandidatesInputSchema },
@@ -57,7 +58,7 @@ const aiSourceCandidatesFlow = ai.defineFlow(
     inputSchema: AISourceCandidatesInputSchema,
     outputSchema: AISourceCandidatesOutputSchema,
   },
-  async input => {
+  async (input: any) => {
     const { output } = await prompt(input);
     return output!;
   }

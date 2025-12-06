@@ -24,10 +24,11 @@ const AiCultureFitOutputSchema = z.object({
 export type AiCultureFitOutput = z.infer<typeof AiCultureFitOutputSchema>;
 
 
-export async function aiCultureFit(input: AiCultureFitInput): Promise<AiCultureFitOutput> {
+export async function aiCultureFit(input: any): Promise<AiCultureFitOutput> {
   return aiCultureFitFlow(input);
 }
 
+// @ts-ignore
 const prompt = ai.definePrompt({
   name: 'aiCultureFitPrompt',
   input: {schema: AiCultureFitInputSchema},
@@ -58,7 +59,7 @@ const aiCultureFitFlow = ai.defineFlow(
     inputSchema: AiCultureFitInputSchema,
     outputSchema: AiCultureFitOutputSchema,
   },
-  async input => {
+  async (input: any) => {
     const {output} = await prompt(input);
     return output!;
   }

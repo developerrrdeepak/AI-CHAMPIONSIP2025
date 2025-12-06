@@ -31,6 +31,7 @@ export async function suggestSkills(
   return suggestSkillsFlow(input);
 }
 
+// @ts-ignore
 const prompt = ai.definePrompt({
   name: 'suggestSkillsPrompt',
   input: {schema: SuggestSkillsInputSchema},

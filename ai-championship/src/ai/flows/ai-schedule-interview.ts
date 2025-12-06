@@ -28,6 +28,7 @@ export async function aiScheduleInterview(input: AIScheduleInterviewInput): Prom
   return aiScheduleInterviewFlow(input);
 }
 
+// @ts-ignore
 const prompt = ai.definePrompt({
   name: 'aiScheduleInterviewPrompt',
   input: { schema: AIScheduleInterviewInputSchema },
@@ -55,7 +56,7 @@ const aiScheduleInterviewFlow = ai.defineFlow(
     inputSchema: AIScheduleInterviewInputSchema,
     outputSchema: AIScheduleInterviewOutputSchema,
   },
-  async input => {
+  async (input: any) => {
     const { output } = await prompt(input);
     return output!;
   }

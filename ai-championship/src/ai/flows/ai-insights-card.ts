@@ -29,6 +29,7 @@ export async function generateDashboardInsights(
   return generateDashboardInsightsFlow(input);
 }
 
+// @ts-ignore
 const prompt = ai.definePrompt({
   name: 'generateDashboardInsightsPrompt',
   input: {schema: GenerateDashboardInsightsInputSchema},

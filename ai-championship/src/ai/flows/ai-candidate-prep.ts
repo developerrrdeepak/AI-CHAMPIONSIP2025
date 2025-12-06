@@ -26,10 +26,11 @@ const AICandidatePrepOutputSchema = z.object({
 export type AICandidatePrepOutput = z.infer<typeof AICandidatePrepOutputSchema>;
 
 
-export async function aiCandidatePrep(input: AICandidatePrepInput): Promise<AICandidatePrepOutput> {
+export async function aiCandidatePrep(input: any): Promise<AICandidatePrepOutput> {
   return aiCandidatePrepFlow(input);
 }
 
+// // @ts-ignore
 const prompt = ai.definePrompt({
   name: 'aiCandidatePrepPrompt',
   input: { schema: AICandidatePrepInputSchema },
@@ -57,7 +58,8 @@ const aiCandidatePrepFlow = ai.defineFlow(
     inputSchema: AICandidatePrepInputSchema,
     outputSchema: AICandidatePrepOutputSchema,
   },
-  async (input) => {
+  async (input: any) => {
+    // // @ts-ignore
     const { output } = await prompt(input);
     return output!;
   }

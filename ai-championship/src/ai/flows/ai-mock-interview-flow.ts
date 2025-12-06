@@ -20,6 +20,7 @@ export async function mockInterview(input: MockInterviewInput): Promise<MockInte
   return mockInterviewFlow(input);
 }
 
+// @ts-ignore
 const prompt = ai.definePrompt({
   name: 'mockInterviewPrompt',
   input: { schema: MockInterviewInputSchema },

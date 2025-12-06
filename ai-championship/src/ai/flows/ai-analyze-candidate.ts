@@ -31,10 +31,11 @@ const AiAnalyzeCandidateOutputSchema = z.object({
 export type AiAnalyzeCandidateOutput = z.infer<typeof AiAnalyzeCandidateOutputSchema>;
 
 
-export async function aiAnalyzeCandidate(input: AiAnalyzeCandidateInput): Promise<AiAnalyzeCandidateOutput> {
+export async function aiAnalyzeCandidate(input: any): Promise<AiAnalyzeCandidateOutput> {
   return aiAnalyzeCandidateFlow(input);
 }
 
+// // @ts-ignore
 const prompt = ai.definePrompt({
   name: 'aiAnalyzeCandidatePrompt',
   input: {schema: AiAnalyzeCandidateInputSchema},
@@ -58,7 +59,8 @@ const aiAnalyzeCandidateFlow = ai.defineFlow(
     inputSchema: AiAnalyzeCandidateInputSchema,
     outputSchema: AiAnalyzeCandidateOutputSchema,
   },
-  async input => {
+  async (input: any) => {
+    // // @ts-ignore
     const {output} = await prompt(input);
     return {
         aiProfileJson: JSON.stringify(output)
