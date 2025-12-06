@@ -28,7 +28,7 @@ export type GenerateEmailFromBriefOutput = z.infer<
 >;
 
 export async function generateEmailFromBrief(
-  input: GenerateEmailFromBriefInput
+  input: any
 ): Promise<GenerateEmailFromBriefOutput> {
   return generateEmailFromBriefFlow(input);
 }
