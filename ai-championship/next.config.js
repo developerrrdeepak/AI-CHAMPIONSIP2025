@@ -15,19 +15,19 @@ const nextConfig = {
   compress: true,
 
   webpack: (config, { isServer }) => {
-    if (isServer) {
-      config.externals.push({
-        'pdf-parse': 'commonjs pdf-parse',
-        'express': 'commonjs express',
-        'require-in-the-middle': 'commonjs require-in-the-middle',
-        // Explicitly externalize Genkit and its core dependencies if they are causing issues.
-        // This ensures they are not bundled with the client-side code.
-        'genkit': 'commonjs genkit',
-        '@genkit-ai/core': 'commonjs @genkit-ai/core',
-        '@genkit-ai/google-cloud': 'commonjs @genkit-ai/google-cloud',
-        // Add other Genkit related packages if needed
-      });
-    }
+    // Ensure server-only modules are externalized for both client and server builds if they are
+    // causing issues in the client bundle, as they should never run in the browser.
+    // This is a more aggressive approach to fix persistent ENOENT errors related to server modules.
+    config.externals.push({
+      'pdf-parse': 'commonjs pdf-parse',
+      'express': 'commonjs express',
+      'require-in-the-middle': 'commonjs require-in-the-middle',
+      'genkit': 'commonjs genkit',
+      '@genkit-ai/core': 'commonjs @genkit-ai/core',
+      '@genkit-ai/google-cloud': 'commonjs @genkit-ai/google-cloud',
+      // Add other Genkit related packages or server-only modules here if necessary
+    });
+    
     return config;
   },
   
@@ -98,8 +98,8 @@ const nextConfig = {
         pathname: '/**',
       },
     ],
-    dangerouslyAllowSVG: true,
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // Removed dangerouslyAllowSVG: true as it can cause issues and is not always necessary.
+    // Removed contentSecurityPolicy from images as Vercel handles security headers automatically.
   },
 };
 
